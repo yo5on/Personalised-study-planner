@@ -1,9 +1,18 @@
-# Daymark — Personalised Study Planner
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/yo5on/yo5on/main/hd-projects.svg" width="620" alt="projects"/>
+
+<samp><b>DAYMARK — PERSONALISED STUDY PLANNER</b></samp>
+
+<samp>react · typescript · vite · product design</samp>
+
+**[Live App](https://personalised-study-planner.vercel.app)** · **[Repository](https://github.com/yo5on/Personalised-study-planner)**
+
+</div>
+
+---
 
 A personalised study planner that adapts daily study plans around time, priorities, exam proximity, session outcomes, and learner feedback.
-
-**Live:** https://personalised-study-planner.vercel.app  
-**Repository:** https://github.com/yo5on/Personalised-study-planner
 
 ## Overview
 
