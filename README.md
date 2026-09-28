@@ -38,19 +38,35 @@
 
 <div align="center">
 
-![Daymark study session](https://raw.githubusercontent.com/yo5on/Personalised-study-planner/main/images/study-session.png)
+![Daymark study plan](https://raw.githubusercontent.com/yo5on/Personalised-study-planner/main/images/plan.png)
 
 </div>
 
-<div align="center"><samp><i>Study session and learner feedback flow.</i></samp></div>
+<div align="center"><samp><i>Adaptive daily and weekly study planning.</i></samp></div>
 
 <div align="center">
 
-![Daymark insights](https://raw.githubusercontent.com/yo5on/Personalised-study-planner/main/images/insights.png)
+![Daymark subjects](https://raw.githubusercontent.com/yo5on/Personalised-study-planner/main/images/subjects.png)
 
 </div>
 
-<div align="center"><samp><i>Personal learning insights.</i></samp></div>
+<div align="center"><samp><i>Subject mastery and upcoming-exam overview.</i></samp></div>
+
+<div align="center">
+
+![Daymark progress](https://raw.githubusercontent.com/yo5on/Personalised-study-planner/main/images/progress.png)
+
+</div>
+
+<div align="center"><samp><i>Study progress, consistency, and subject performance.</i></samp></div>
+
+<div align="center">
+
+![Daymark revision](https://raw.githubusercontent.com/yo5on/Personalised-study-planner/main/images/revision.png)
+
+</div>
+
+<div align="center"><samp><i>Spaced revision and confidence-based recall.</i></samp></div>
 
 ---
 
