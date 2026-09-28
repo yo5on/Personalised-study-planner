@@ -5,7 +5,7 @@ export type DaymarkProfile = { name: string; course: string; year: string };
 export type DaymarkState = { version: 1; profile: DaymarkProfile; subjects: Subject[]; sessions: Session[]; records: StudyRecord[]; planChanges: PlanChange[] };
 
 const KEY = 'daymark-state';
-const defaultProfile: DaymarkProfile = { name: 'Yoson Kumar', course: 'Computer Science', year: '2' };
+const defaultProfile: DaymarkProfile = { name: 'Farah Fathima', course: 'Computer Science', year: '2' };
 const validStatuses = new Set(['done', 'now', 'next', 'later']);
 const validOutcomes = new Set(['understood', 'more-time', 'struggled', 'unfinished']);
 
