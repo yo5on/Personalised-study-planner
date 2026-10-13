@@ -1,4 +1,4 @@
-import { initialSessions, subjects as defaultSubjects, localDateKey, type Session, type Subject } from '../data';
+import { sampleSubjects, localDateKey, type Session, type Subject } from '../data';
 import type { PlanChange, StudyRecord } from './agents';
 
 export type DaymarkProfile = { name: string; course: string; year: string };
@@ -9,25 +9,35 @@ export type DaymarkState = {
   sessions: Session[];
   records: StudyRecord[];
   planChanges: PlanChange[];
+  /** False only for a brand-new browser, until the welcome step is finished or skipped. */
+  onboarded: boolean;
 };
 
 const KEY = 'daymark-state';
-const defaultProfile: DaymarkProfile = { name: 'Farah Fathima', course: 'Computer Science', year: '2' };
+const BACKUP_KEY = 'daymark-state-unreadable-backup';
+const defaultProfile: DaymarkProfile = { name: '', course: '', year: '' };
 const validStatuses = new Set(['done', 'now', 'next', 'later']);
 const validOutcomes = new Set(['understood', 'more-time', 'struggled', 'unfinished']);
 const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
 const isStringArray = (value: unknown): value is string[] => Array.isArray(value) && value.every((item) => typeof item === 'string');
 
-function safeRead(key: string): unknown {
+function readRaw(key: string): string | null {
   try {
-    const raw = window.localStorage.getItem(key);
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function safeRead(key: string): unknown {
+  const raw = readRaw(key);
+  try {
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 function normaliseSessions(value: unknown): Session[] {
-  if (!Array.isArray(value)) return [...initialSessions];
+  if (!Array.isArray(value)) return [];
   const sessions = value.filter(
     (item): item is Session =>
       !!item &&
@@ -44,7 +54,6 @@ function normaliseSessions(value: unknown): Session[] {
       ['High', 'Medium', 'Low'].includes(item.priority) &&
       validStatuses.has(item.status),
   );
-  if (value.length > 0 && sessions.length === 0) return [...initialSessions];
   const seen = new Set<number>();
   // Duplicate ids would make completing one session mark another as done.
   return sessions
@@ -56,7 +65,7 @@ function normaliseSessions(value: unknown): Session[] {
     }));
 }
 function normaliseSubjects(value: unknown): Subject[] {
-  if (!Array.isArray(value)) return defaultSubjects.map((subject) => ({ ...subject }));
+  if (!Array.isArray(value)) return [];
   const seen = new Set<string>();
   return value
     .filter(
@@ -119,14 +128,12 @@ function normalisePlanChanges(value: unknown): PlanChange[] {
 function normaliseProfile(value: unknown): DaymarkProfile {
   if (!value || typeof value !== 'object') return { ...defaultProfile };
   const profile = value as Partial<DaymarkProfile>;
-  return {
-    name: typeof profile.name === 'string' && profile.name.trim() ? profile.name.trim() : defaultProfile.name,
-    course: typeof profile.course === 'string' && profile.course.trim() ? profile.course.trim() : defaultProfile.course,
-    year: typeof profile.year === 'string' && profile.year.trim() ? profile.year.trim() : defaultProfile.year,
-  };
+  const text = (field: unknown, max: number) => (typeof field === 'string' ? field.trim().slice(0, max) : '');
+  return { name: text(profile.name, 60), course: text(profile.course, 80), year: text(profile.year, 20) };
 }
 
-export function loadDaymarkState(): DaymarkState {
+export function loadDaymarkState(today: Date = new Date()): DaymarkState {
+  const raw = readRaw(KEY);
   const saved = safeRead(KEY);
   if (saved && typeof saved === 'object') {
     const state = saved as Partial<DaymarkState>;
@@ -137,13 +144,34 @@ export function loadDaymarkState(): DaymarkState {
       sessions: normaliseSessions(state.sessions),
       records: normaliseRecords(state.records),
       planChanges: normalisePlanChanges(state.planChanges),
+      // Saved state from before onboarding existed belongs to someone already using Daymark.
+      onboarded: state.onboarded !== false,
     };
   }
-  // Migrate earlier versions that saved these collections under separate keys.
-  const sessions = normaliseSessions(safeRead('daymark-sessions'));
-  const records = normaliseRecords(safeRead('daymark-records'));
-  const profile = normaliseProfile(safeRead('daymark-profile'));
-  return { version: 1, profile, subjects: defaultSubjects.map((subject) => ({ ...subject })), sessions, records, planChanges: [] };
+  if (raw) {
+    // Keep a copy of data we couldn't read rather than silently overwriting it on the next save.
+    try {
+      window.localStorage.setItem(BACKUP_KEY, raw);
+    } catch {
+      /* Storage is unavailable or full; nothing more we can do. */
+    }
+  }
+  // Migrate earlier versions that saved these collections under separate keys. Those versions always used the
+  // sample subjects, so their sessions keep a subject to belong to.
+  const legacySessions = safeRead('daymark-sessions');
+  const legacyRecords = safeRead('daymark-records');
+  const legacyProfile = safeRead('daymark-profile');
+  if (legacySessions || legacyRecords || legacyProfile)
+    return {
+      version: 1,
+      profile: normaliseProfile(legacyProfile),
+      subjects: sampleSubjects(today),
+      sessions: normaliseSessions(legacySessions),
+      records: normaliseRecords(legacyRecords),
+      planChanges: [],
+      onboarded: true,
+    };
+  return { version: 1, profile: { ...defaultProfile }, subjects: [], sessions: [], records: [], planChanges: [], onboarded: false };
 }
 export function saveDaymarkState(state: DaymarkState): void {
   try {

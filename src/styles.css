@@ -6,8 +6,8 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   --ink: #1d1d1f;
-  --muted: #6e6e73;
-  --faint: #86868b;
+  --muted: #6c6c70;
+  --faint: #6b6b70;
   --line: #d2d2d7;
   --paper: #fff;
   --canvas: #f5f5f7;
@@ -79,18 +79,18 @@ textarea:focus-visible {
     serif;
 }
 .brand-beta {
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 1.1px;
   font-weight: 700;
-  color: #a09f94;
+  color: #6e6d62;
   margin-left: 2px;
 }
 .workspace-label,
 .eyebrow {
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.2px;
-  color: #95958e;
+  color: #6c6c65;
 }
 .workspace-label {
   margin: 43px 0 12px 9px;
@@ -106,8 +106,8 @@ textarea:focus-visible {
   gap: 12px;
   padding: 0 11px;
   border-radius: 7px;
-  color: #74746e;
-  font-size: 12px;
+  color: #6c6c67;
+  font-size: 14px;
   text-align: left;
   transition:
     background 0.16s,
@@ -150,7 +150,7 @@ textarea:focus-visible {
   place-items: center;
   border-radius: 8px;
   background: #f2e9d9;
-  color: #b38242;
+  color: #8a6433;
 }
 .streak-box div:nth-child(2) {
   display: grid;
@@ -158,15 +158,15 @@ textarea:focus-visible {
   flex: 1;
 }
 .streak-box b {
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
 }
 .streak-box span {
-  font-size: 9px;
+  font-size: 13px;
   color: var(--muted);
 }
 .streak-box > svg {
-  color: #aaa99d;
+  color: #6e6c5f;
 }
 .profile {
   border-top: 1px solid #e4e4dd;
@@ -198,22 +198,22 @@ textarea:focus-visible {
   flex: 1;
 }
 .profile-name b {
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 600;
 }
 .profile-name span {
-  font-size: 9px;
+  font-size: 13px;
   color: var(--muted);
 }
 .profile > svg {
-  color: #9a9a93;
+  color: #6c6c65;
 }
 .side-foot {
   display: flex;
   justify-content: space-between;
   padding: 13px 4px 0;
-  color: #a3a39b;
-  font-size: 9px;
+  color: #6d6d64;
+  font-size: 13px;
 }
 .main {
   margin-left: 244px;
@@ -235,8 +235,8 @@ textarea:focus-visible {
 }
 .breadcrumbs {
   gap: 9px;
-  color: #999991;
-  font-size: 11px;
+  color: #6c6c64;
+  font-size: 14px;
 }
 .breadcrumbs b {
   color: #55554f;
@@ -253,22 +253,22 @@ textarea:focus-visible {
   gap: 7px;
   border: 1px solid #e4e4dc;
   border-radius: 6px;
-  font-size: 10px;
+  font-size: 13px;
   color: #55554f;
   background: #fafaf8;
 }
 .today-button svg {
-  color: #8c8c84;
+  color: #6c6c65;
 }
 .help-button {
-  color: #92928a;
+  color: #6d6d65;
   display: grid;
   place-items: center;
 }
 .top-avatar {
   width: 28px;
   height: 28px;
-  font-size: 13px;
+  font-size: 15px;
 }
 .page-wrap {
   max-width: 1250px;
@@ -288,7 +288,7 @@ textarea:focus-visible {
 }
 .sun-mark {
   color: #be9b5e;
-  font-size: 13px;
+  font-size: 15px;
   margin-left: 4px;
 }
 .greeting-row h1,
@@ -302,11 +302,11 @@ textarea:focus-visible {
 }
 .greeting-row h1 em {
   font-weight: 400;
-  color: #7777ad;
+  color: #6666a2;
 }
 .subhead {
-  font-size: 12px;
-  color: #8b8b84;
+  font-size: 14px;
+  color: #6c6c66;
   margin: 9px 0 0;
 }
 .button {
@@ -317,7 +317,7 @@ textarea:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 600;
   transition:
     transform 0.14s,
@@ -344,7 +344,7 @@ textarea:focus-visible {
   border-color: #d6d6ce;
 }
 .button.quiet {
-  color: #77776f;
+  color: #6c6c65;
 }
 .dashboard-grid {
   display: grid;
@@ -380,7 +380,7 @@ textarea:focus-visible {
 }
 .feature-more,
 .dots-button {
-  color: #9b9b93;
+  color: #6d6d65;
   display: grid;
   place-items: center;
 }
@@ -388,15 +388,15 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 10px;
-  color: #7b7b74;
+  font-size: 13px;
+  color: #6b6b65;
   margin-top: 17px;
 }
 .subject-chip {
   padding: 4px 6px;
   border-radius: 4px;
   color: #666696;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.4px;
 }
@@ -411,8 +411,8 @@ textarea:focus-visible {
   margin: 10px 0 7px;
 }
 .feature-description {
-  font-size: 10px;
-  color: #85857f;
+  font-size: 13px;
+  color: #6c6c67;
   max-width: 400px;
   line-height: 1.6;
   margin: 0;
@@ -438,8 +438,8 @@ textarea:focus-visible {
   transition: width 0.35s;
 }
 .focus-progress > span {
-  font-size: 9px;
-  color: #93938c;
+  font-size: 13px;
+  color: #6b6b65;
 }
 .feature-footer {
   display: flex;
@@ -450,8 +450,8 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 9px;
-  color: #93938d;
+  font-size: 13px;
+  color: #6b6b66;
 }
 .feature-footer .button {
   height: 31px;
@@ -472,6 +472,7 @@ textarea:focus-visible {
   padding: 20px 19px 15px;
   min-height: 247px;
 }
+.section-head h2,
 .section-head h3 {
   font:
     500 18px 'Newsreader',
@@ -480,10 +481,10 @@ textarea:focus-visible {
   margin: 4px 0 0;
 }
 .section-head .eyebrow {
-  font-size: 8px;
+  font-size: 11px;
 }
 .text-button {
-  font-size: 9px;
+  font-size: 13px;
   color: #66669f;
   display: inline-flex;
   align-items: center;
@@ -508,12 +509,12 @@ textarea:focus-visible {
 }
 .availability-num span {
   font-size: 18px;
-  color: #797970;
+  color: #6d6d65;
   margin-right: 3px;
 }
 .availability > span {
-  font-size: 9px;
-  color: #85857f;
+  font-size: 13px;
+  color: #6c6c67;
 }
 .summary-rule {
   height: 1px;
@@ -539,8 +540,8 @@ textarea:focus-visible {
     serif;
 }
 .summary-stats small {
-  font-size: 9px;
-  color: #898981;
+  font-size: 13px;
+  color: #6c6c66;
 }
 .day-note {
   margin-top: 14px;
@@ -548,11 +549,11 @@ textarea:focus-visible {
   border-top: 1px solid #e3e2da;
   display: flex;
   gap: 7px;
-  color: #77776f;
-  font-size: 9px;
+  color: #6c6c65;
+  font-size: 13px;
 }
 .day-note > span {
-  color: #748e79;
+  color: #5c7160;
 }
 .schedule-section,
 .right-column {
@@ -568,8 +569,8 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #82827a;
-  font-size: 9px;
+  color: #6c6c65;
+  font-size: 13px;
 }
 .timeline {
   margin-top: 16px;
@@ -580,8 +581,8 @@ textarea:focus-visible {
   min-height: 55px;
 }
 .time-col {
-  font-size: 9px;
-  color: #8e8e86;
+  font-size: 13px;
+  color: #6c6c65;
   padding-top: 3px;
   position: relative;
 }
@@ -642,13 +643,13 @@ textarea:focus-visible {
   gap: 7px;
 }
 .timeline-title b {
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 600;
 }
 .now-tag {
-  font-size: 7px;
+  font-size: 11px;
   letter-spacing: 0.5px;
-  color: #6a6a9e;
+  color: #67679c;
   background: #efeff9;
   border-radius: 3px;
   padding: 3px 4px;
@@ -659,11 +660,11 @@ textarea:focus-visible {
   align-items: center;
   gap: 6px;
   margin-top: 5px;
-  font-size: 8px;
-  color: #92928b;
+  font-size: 12px;
+  color: #6b6b65;
 }
 .mini-subject {
-  font-size: 8px;
+  font-size: 12px;
   padding: 2px 4px;
   border-radius: 3px;
   color: #6d6d67;
@@ -675,7 +676,7 @@ textarea:focus-visible {
   place-items: center;
   border-radius: 50%;
   border: 1px solid #e7e7e1;
-  color: #7777aa;
+  color: #6767a0;
   opacity: 0.4;
   transition: opacity 0.15s;
 }
@@ -684,10 +685,10 @@ textarea:focus-visible {
 }
 .is-done .timeline-title b {
   text-decoration: line-through;
-  color: #a4a49d;
+  color: #6c6c65;
 }
 .done-icon {
-  color: #6d9274;
+  color: #56735c;
 }
 .right-column {
   display: grid;
@@ -717,20 +718,20 @@ textarea:focus-visible {
   gap: 7px;
   padding: 7px 2px 5px;
   border-radius: 6px;
-  color: #8c8c84;
+  color: #6c6c65;
 }
 .week-day > span {
-  font-size: 7px;
+  font-size: 12px;
   letter-spacing: 0.3px;
 }
 .week-day > b {
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 500;
   color: #5e5e57;
 }
 .week-day.selected {
   background: #efeff7;
-  color: #69699f;
+  color: #67679e;
 }
 .week-day.selected > b {
   color: #505087;
@@ -762,18 +763,18 @@ textarea:focus-visible {
     serif;
 }
 .week-caption {
-  font-size: 8px;
-  color: #92928b;
+  font-size: 12px;
+  color: #6b6b65;
 }
 .trend-pill {
   padding: 4px 6px;
   border-radius: 4px;
   background: #edf3ed;
-  color: #628168;
+  color: #57735c;
   display: flex;
   align-items: center;
   gap: 2px;
-  font-size: 8px;
+  font-size: 12px;
 }
 .weekly-bar {
   margin-top: 13px;
@@ -792,8 +793,8 @@ textarea:focus-visible {
   display: flex;
   justify-content: space-between;
   margin-top: 6px;
-  font-size: 8px;
-  color: #97978f;
+  font-size: 12px;
+  color: #6d6d65;
 }
 .week-target b {
   color: #c6c6bc;
@@ -819,19 +820,19 @@ textarea:focus-visible {
   border-radius: 6px;
   display: grid;
   place-items: center;
-  font-size: 12px;
+  font-size: 14px;
 }
 .topic-symbol.warm {
   background: #f5ecdf;
-  color: #af874e;
+  color: #85663b;
 }
 .topic-symbol.lilac {
   background: #efeff8;
-  color: #7676a8;
+  color: #66669e;
 }
 .topic-symbol.green {
   background: #edf3ed;
-  color: #719076;
+  color: #59725d;
 }
 .focus-topic > span:nth-child(2) {
   display: grid;
@@ -839,15 +840,15 @@ textarea:focus-visible {
   flex: 1;
 }
 .focus-topic b {
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 600;
 }
 .focus-topic small {
-  font-size: 8px;
-  color: #93938b;
+  font-size: 12px;
+  color: #6c6c65;
 }
 .focus-topic > svg {
-  color: #aaa99f;
+  color: #6e6c61;
 }
 .command-section {
   grid-column: 1/-1;
@@ -867,7 +868,7 @@ textarea:focus-visible {
   background: #f8f8f5;
   display: grid;
   place-items: center;
-  color: #7c7c8c;
+  color: #6b6b7a;
 }
 .command-copy {
   display: grid;
@@ -875,15 +876,15 @@ textarea:focus-visible {
   flex: 1;
 }
 .command-copy .eyebrow {
-  font-size: 7px;
+  font-size: 11px;
 }
 .command-copy b {
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 600;
 }
 .command-copy small {
-  font-size: 8px;
-  color: #92928b;
+  font-size: 12px;
+  color: #6b6b65;
 }
 .command-section form {
   height: 34px;
@@ -899,18 +900,18 @@ textarea:focus-visible {
   width: 100%;
   border: 0;
   outline: none;
-  font-size: 9px;
+  font-size: 13px;
   color: #474740;
 }
 .command-section input::placeholder {
-  color: #adada5;
+  color: #6d6d63;
 }
 .command-section form button {
   width: 24px;
   height: 24px;
   display: grid;
   place-items: center;
-  color: #7777a8;
+  color: #67679e;
 }
 .change-note {
   margin-top: 16px;
@@ -928,7 +929,7 @@ textarea:focus-visible {
   display: grid;
   place-items: center;
   background: #eeedf8;
-  color: #7777a8;
+  color: #67679e;
   border-radius: 6px;
   flex-shrink: 0;
 }
@@ -938,20 +939,20 @@ textarea:focus-visible {
   flex: 1;
 }
 .change-note b {
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 600;
 }
 .change-note span {
-  font-size: 9px;
-  color: #86867f;
+  font-size: 13px;
+  color: #6c6c66;
 }
 .change-note span button {
   color: #68689e;
-  font-size: 9px;
+  font-size: 13px;
   padding: 0 0 0 5px;
 }
 .dismiss {
-  color: #aaa99f;
+  color: #6e6c61;
 }
 .page-title-row {
   align-items: center;
@@ -961,7 +962,7 @@ textarea:focus-visible {
   font-size: 37px;
 }
 .page-title-row .subhead {
-  font-size: 11px;
+  font-size: 14px;
 }
 .planner-toolbar {
   height: 47px;
@@ -979,8 +980,8 @@ textarea:focus-visible {
   padding: 3px;
 }
 .view-toggle button {
-  font-size: 9px;
-  color: #7c7c74;
+  font-size: 13px;
+  color: #6c6c65;
   padding: 6px 12px;
   border-radius: 4px;
 }
@@ -993,23 +994,23 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #76766e;
+  color: #6d6d65;
 }
 .week-navigation > b {
-  font-size: 10px;
+  font-size: 13px;
   color: #4e4e48;
   font-weight: 600;
 }
 .week-navigation > button:not(.today-pill) {
   display: grid;
   place-items: center;
-  color: #91918a;
+  color: #6c6c65;
 }
 .today-pill {
   border: 1px solid #e5e5de;
   border-radius: 4px;
   padding: 5px 8px;
-  font-size: 8px;
+  font-size: 12px;
   color: #6c6c65;
 }
 .add-button {
@@ -1040,12 +1041,12 @@ textarea:focus-visible {
   border-left: 1px solid #f1f1ed;
 }
 .calendar-day > span {
-  font-size: 7px;
-  color: #a1a199;
+  font-size: 12px;
+  color: #6d6d64;
   letter-spacing: 0.5px;
 }
 .calendar-day > b {
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 500;
   color: #65655e;
 }
@@ -1074,9 +1075,9 @@ textarea:focus-visible {
 }
 .time-labels span {
   height: 1px;
-  font-size: 7px;
+  font-size: 12px;
   text-align: right;
-  color: #aaa9a2;
+  color: #6e6c64;
 }
 .calendar-column {
   border-left: 1px solid #f0f0eb;
@@ -1101,16 +1102,16 @@ textarea:focus-visible {
   color: #535381;
 }
 .calendar-session b {
-  font-size: 8px;
+  font-size: 12px;
 }
 .calendar-session span {
-  font-size: 7px;
+  font-size: 12px;
   line-height: 1.3;
   margin-top: 4px;
 }
 .calendar-session small {
-  font-size: 7px;
-  color: #79799d;
+  font-size: 12px;
+  color: #69698f;
   margin-top: 5px;
 }
 .calendar-foot {
@@ -1125,12 +1126,12 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 8px;
-  color: #8a8a82;
+  font-size: 12px;
+  color: #6c6c65;
 }
 .calendar-foot span:last-child {
   margin-left: auto;
-  color: #aaa99f;
+  color: #6e6c61;
 }
 .legend-dot {
   width: 6px;
@@ -1157,6 +1158,7 @@ textarea:focus-visible {
   background: #fff;
   padding: 15px 13px;
 }
+.aside-block h2,
 .aside-block h3 {
   font:
     500 16px 'Newsreader',
@@ -1177,7 +1179,7 @@ textarea:focus-visible {
   place-items: center;
   border-radius: 6px;
   color: #67675f;
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 600;
 }
 .exam-row > span:nth-child(2) {
@@ -1186,20 +1188,20 @@ textarea:focus-visible {
   flex: 1;
 }
 .exam-row b {
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 600;
 }
 .exam-row small {
-  font-size: 7px;
-  color: #92928b;
+  font-size: 12px;
+  color: #6b6b65;
 }
 .exam-row > strong {
-  font-size: 8px;
-  color: #85857d;
+  font-size: 12px;
+  color: #6c6c65;
   font-weight: 500;
 }
 .exam-row > strong.urgent {
-  color: #a77a46;
+  color: #8a653a;
 }
 .aside-block.intention {
   display: flex;
@@ -1208,17 +1210,17 @@ textarea:focus-visible {
   background: #f2f1ec;
 }
 .intention-icon {
-  color: #7777a8;
+  color: #67679e;
   margin-top: 1px;
 }
 .intention b {
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 600;
 }
 .intention p {
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.5;
-  color: #85857e;
+  color: #6c6c66;
   margin: 5px 0 0;
 }
 .button.full {
@@ -1231,8 +1233,8 @@ textarea:focus-visible {
   margin-bottom: 10px;
 }
 .agenda-total {
-  font-size: 9px;
-  color: #92928b;
+  font-size: 13px;
+  color: #6b6b65;
 }
 .agenda-row {
   width: 100%;
@@ -1245,8 +1247,8 @@ textarea:focus-visible {
 }
 .agenda-time {
   width: 37px;
-  color: #898981;
-  font-size: 9px;
+  color: #6c6c66;
+  font-size: 13px;
 }
 .agenda-stripe {
   height: 28px;
@@ -1259,12 +1261,12 @@ textarea:focus-visible {
   flex: 1;
 }
 .agenda-copy b {
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 600;
 }
 .agenda-copy small {
-  font-size: 8px;
-  color: #92928b;
+  font-size: 12px;
+  color: #6b6b65;
 }
 .agenda-copy small span {
   margin: 0 4px;
@@ -1274,17 +1276,17 @@ textarea:focus-visible {
   padding: 4px 6px;
   border-radius: 4px;
   background: #f4f1e9;
-  color: #947947;
-  font-size: 7px;
+  color: #7f683d;
+  font-size: 12px;
 }
 .agenda-duration {
   width: 48px;
   text-align: right;
-  font-size: 9px;
+  font-size: 13px;
   color: #66665f;
 }
 .agenda-row > svg {
-  color: #aaa99f;
+  color: #6e6c61;
 }
 .replan-explanation {
   display: flex;
@@ -1302,18 +1304,18 @@ textarea:focus-visible {
   flex: 1;
 }
 .replan-explanation b {
-  font-size: 10px;
+  font-size: 13px;
 }
 .replan-explanation > div:nth-child(2) > span {
-  font-size: 9px;
-  color: #85857e;
+  font-size: 13px;
+  color: #6c6c66;
 }
 .change-chips {
   display: flex;
   gap: 5px;
 }
 .change-chips span {
-  font-size: 8px;
+  font-size: 12px;
   color: #6d6d67;
   background: #fff;
   border: 1px solid #e9e9e3;
@@ -1343,13 +1345,13 @@ textarea:focus-visible {
   border-radius: 9px;
   display: grid;
   place-items: center;
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 700;
   color: #5f5f59;
   letter-spacing: 0.3px;
 }
 .subject-card > .eyebrow {
-  font-size: 8px;
+  font-size: 11px;
 }
 .subject-card > .eyebrow span {
   padding: 0 3px;
@@ -1365,8 +1367,8 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 9px;
-  color: #86867f;
+  font-size: 13px;
+  color: #6c6c66;
 }
 .mastery-row b {
   font:
@@ -1403,11 +1405,11 @@ textarea:focus-visible {
   gap: 3px;
 }
 .subject-insights small {
-  font-size: 8px;
-  color: #9b9b93;
+  font-size: 12px;
+  color: #6d6d65;
 }
 .subject-insights b {
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 600;
 }
 .insight-check,
@@ -1417,15 +1419,15 @@ textarea:focus-visible {
   border-radius: 5px;
   display: grid;
   place-items: center;
-  font-size: 11px;
+  font-size: 14px;
 }
 .insight-check {
   background: #edf3ed;
-  color: #65836d;
+  color: #58725f;
 }
 .insight-warn {
   background: #f6f0e7;
-  color: #a27d4c;
+  color: #84663e;
 }
 .subject-card-foot {
   border-top: 1px solid #efefea;
@@ -1433,8 +1435,8 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 8px;
-  color: #888880;
+  font-size: 12px;
+  color: #6b6b65;
 }
 .subject-card-foot span {
   display: flex;
@@ -1455,19 +1457,19 @@ textarea:focus-visible {
   border-radius: 7px;
 }
 .note-star {
-  color: #8181ad;
+  color: #67679c;
 }
 .subject-bottom-note p {
   flex: 1;
-  font-size: 9px;
-  color: #77776f;
+  font-size: 13px;
+  color: #6c6c65;
   margin: 0;
 }
 .subject-bottom-note p b {
   color: #4a4a44;
 }
 .subject-bottom-note .text-button {
-  font-size: 8px;
+  font-size: 12px;
 }
 .progress-metrics {
   display: grid;
@@ -1487,10 +1489,10 @@ textarea:focus-visible {
   border-left: 1px solid #efefea;
 }
 .metric > span {
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.8px;
-  color: #95958d;
+  color: #6c6c64;
 }
 .metric > b {
   font:
@@ -1500,16 +1502,16 @@ textarea:focus-visible {
 }
 .metric > b span {
   font-size: 16px;
-  color: #85857d;
+  color: #6c6c65;
 }
 .metric > small {
-  font-size: 8px;
-  color: #92928b;
+  font-size: 12px;
+  color: #6b6b65;
   display: flex;
   align-items: center;
 }
 .metric .positive {
-  color: #64836c;
+  color: #57725e;
   gap: 2px;
 }
 .metric-track {
@@ -1544,8 +1546,8 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 8px;
-  color: #87877f;
+  font-size: 12px;
+  color: #6c6c65;
 }
 .chart-legend i {
   height: 6px;
@@ -1585,19 +1587,19 @@ textarea:focus-visible {
 .bar-group > small {
   position: absolute;
   bottom: -17px;
-  font-size: 8px;
-  color: #96968f;
+  font-size: 12px;
+  color: #6c6c65;
 }
 .bar-value {
-  font-size: 7px;
-  color: #85857d;
+  font-size: 12px;
+  color: #6c6c65;
 }
 .chart-foot {
   display: flex;
   justify-content: space-between;
   margin-top: 26px;
-  font-size: 8px;
-  color: #8f8f87;
+  font-size: 12px;
+  color: #6c6c65;
 }
 .mastery-panel .section-head {
   margin-bottom: 19px;
@@ -1615,7 +1617,7 @@ textarea:focus-visible {
 }
 .mastery-name {
   width: 115px;
-  font-size: 8px;
+  font-size: 12px;
   color: #696962;
 }
 .mastery-line .mastery-track {
@@ -1624,7 +1626,7 @@ textarea:focus-visible {
   height: 4px;
 }
 .mastery-line > b {
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 600;
   width: 26px;
   text-align: right;
@@ -1639,8 +1641,8 @@ textarea:focus-visible {
   margin-top: 17px;
 }
 .consistency-big span {
-  font: 400 10px 'DM Sans';
-  color: #8b8b83;
+  font: 400 13px 'DM Sans';
+  color: #6c6c65;
 }
 .consistency-dots {
   display: flex;
@@ -1666,13 +1668,13 @@ textarea:focus-visible {
   border-color: #8a9f8d;
 }
 .consistency-dots small {
-  font-size: 7px;
-  color: #97978f;
+  font-size: 12px;
+  color: #6d6d65;
 }
 .consistency-copy {
-  font-size: 8px;
+  font-size: 12px;
   line-height: 1.5;
-  color: #898981;
+  color: #6c6c66;
   margin: 12px 0 0;
 }
 .progress-insight {
@@ -1688,13 +1690,14 @@ textarea:focus-visible {
   display: grid;
   place-items: center;
   background: #e8e7f2;
-  color: #7777a8;
+  color: #67679e;
   border-radius: 6px;
   flex-shrink: 0;
 }
 .progress-insight > div {
   flex: 1;
 }
+.progress-insight h2,
 .progress-insight h3 {
   font:
     500 16px/1.25 'Newsreader',
@@ -1702,8 +1705,8 @@ textarea:focus-visible {
   margin: 6px 0;
 }
 .progress-insight p {
-  font-size: 8px;
-  color: #898981;
+  font-size: 12px;
+  color: #6c6c66;
   margin: 0;
 }
 .progress-insight > .text-button {
@@ -1725,26 +1728,26 @@ textarea:focus-visible {
   background: #e7e7df;
   display: grid;
   place-items: center;
-  color: #71719e;
+  color: #686898;
 }
 .revision-intro > div:nth-child(2) {
   flex: 1;
 }
 .revision-intro b {
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 600;
 }
 .revision-intro p {
   margin: 4px 0 0;
-  font-size: 9px;
-  color: #85857e;
+  font-size: 13px;
+  color: #6c6c66;
 }
 .revision-intro > span {
-  font-size: 8px;
+  font-size: 12px;
   border-radius: 12px;
   padding: 6px 8px;
   background: #fff;
-  color: #77776f;
+  color: #6c6c65;
 }
 .revision-list {
   background: #fff;
@@ -1766,11 +1769,11 @@ textarea:focus-visible {
   font:
     500 14px 'Newsreader',
     serif;
-  color: #aaa99f;
+  color: #6e6c61;
   width: 20px;
 }
 .revision-number.high {
-  color: #b08654;
+  color: #86653e;
 }
 .revision-topic {
   display: grid;
@@ -1778,12 +1781,12 @@ textarea:focus-visible {
   width: 205px;
 }
 .revision-topic b {
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 600;
 }
 .revision-topic small {
-  font-size: 8px;
-  color: #94948c;
+  font-size: 12px;
+  color: #6c6c65;
 }
 .confidence-meter {
   display: grid;
@@ -1794,11 +1797,11 @@ textarea:focus-visible {
 }
 .confidence-meter > span,
 .revision-due > span {
-  font-size: 7px;
-  color: #96968e;
+  font-size: 12px;
+  color: #6d6d65;
 }
 .confidence-meter > b {
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 600;
 }
 .confidence-meter > i {
@@ -1821,12 +1824,12 @@ textarea:focus-visible {
   flex: 1;
 }
 .revision-due > b {
-  font-size: 9px;
+  font-size: 13px;
   font-weight: 600;
 }
 .revision-row .button {
   height: 28px;
-  font-size: 8px;
+  font-size: 12px;
 }
 .revision-tip {
   display: flex;
@@ -1839,22 +1842,22 @@ textarea:focus-visible {
   background: #fff;
 }
 .revision-tip > span {
-  color: #8a8aad;
+  color: #686894;
   font-size: 17px;
 }
 .revision-tip > div {
   flex: 1;
 }
 .revision-tip b {
-  font-size: 9px;
+  font-size: 13px;
 }
 .revision-tip p {
-  font-size: 8px;
-  color: #92928b;
+  font-size: 12px;
+  color: #6b6b65;
   margin: 4px 0 0;
 }
 .revision-tip .text-button {
-  font-size: 8px;
+  font-size: 12px;
 }
 .insights-period {
   display: flex;
@@ -1864,8 +1867,8 @@ textarea:focus-visible {
   background: white;
   border-radius: 5px;
   padding: 8px 9px;
-  font-size: 8px;
-  color: #797970;
+  font-size: 12px;
+  color: #6d6d65;
 }
 .insight-list {
   display: grid;
@@ -1891,21 +1894,21 @@ textarea:focus-visible {
 }
 .insight-number.morning {
   background: #f1f0e9;
-  color: #a38559;
+  color: #806946;
 }
 .insight-number.topic {
   background: #efeff8;
-  color: #7777a7;
+  color: #66669c;
 }
 .insight-number.win {
   background: #edf3ed;
-  color: #718e76;
+  color: #5a725e;
 }
 .insight-body {
   flex: 1;
 }
 .insight-body .eyebrow {
-  font-size: 7px;
+  font-size: 11px;
 }
 .insight-body h2 {
   font:
@@ -1914,8 +1917,8 @@ textarea:focus-visible {
   margin: 5px 0;
 }
 .insight-body > p {
-  font-size: 10px;
-  color: #777770;
+  font-size: 13px;
+  color: #6c6c66;
   margin: 0;
   line-height: 1.6;
 }
@@ -1926,16 +1929,16 @@ textarea:focus-visible {
   margin-top: 13px;
 }
 .insight-action > span {
-  font-size: 8px;
-  color: #92928a;
+  font-size: 12px;
+  color: #6d6d65;
 }
 .insight-action .text-button {
   border-left: 1px solid #e7e7e1;
   padding-left: 9px;
 }
 .insight-age {
-  font-size: 7px;
-  color: #a4a49c;
+  font-size: 12px;
+  color: #6c6c64;
   letter-spacing: 0.6px;
 }
 .insight-footer {
@@ -1948,8 +1951,8 @@ textarea:focus-visible {
   border-radius: 7px;
 }
 .insight-footer p {
-  font-size: 8px;
-  color: #82827a;
+  font-size: 12px;
+  color: #6c6c65;
   margin: 0;
 }
 .focus-mode {
@@ -1965,13 +1968,13 @@ textarea:focus-visible {
   position: relative;
 }
 .focus-top > .icon-button {
-  color: #898981;
+  color: #6c6c66;
 }
 .wordmark {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.4px;
   margin-left: 20px;
@@ -1986,9 +1989,9 @@ textarea:focus-visible {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 8px;
+  font-size: 11px;
   letter-spacing: 1.3px;
-  color: #999991;
+  color: #6c6c64;
   font-weight: 600;
 }
 .focus-content {
@@ -1997,7 +2000,7 @@ textarea:focus-visible {
   text-align: center;
 }
 .focus-content .eyebrow {
-  font-size: 8px;
+  font-size: 11px;
 }
 .focus-content .eyebrow span {
   padding: 0 4px;
@@ -2011,8 +2014,8 @@ textarea:focus-visible {
   margin: 10px 0;
 }
 .focus-objective {
-  font-size: 10px;
-  color: #85857e;
+  font-size: 13px;
+  color: #6c6c66;
   line-height: 1.6;
   max-width: 400px;
   margin: 0 auto;
@@ -2031,8 +2034,8 @@ textarea:focus-visible {
   padding: 0 3px;
 }
 .timer-caption {
-  font-size: 9px;
-  color: #97978e;
+  font-size: 13px;
+  color: #6d6d64;
   margin-top: 2px;
 }
 .timer-actions {
@@ -2056,13 +2059,13 @@ textarea:focus-visible {
 .section-label {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   margin-bottom: 7px;
 }
 .section-label span {
-  font-size: 8px;
-  color: #999991;
+  font-size: 12px;
+  color: #6c6c64;
   font-weight: 400;
 }
 .session-checklist label {
@@ -2071,7 +2074,7 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 9px;
+  font-size: 13px;
   color: #66665f;
   cursor: pointer;
 }
@@ -2095,12 +2098,12 @@ textarea:focus-visible {
 }
 .session-checklist input:checked ~ span:nth-of-type(2) {
   text-decoration: line-through;
-  color: #a2a29b;
+  color: #6d6d65;
 }
 .session-checklist label small {
   margin-left: auto;
-  font-size: 8px;
-  color: #a1a199;
+  font-size: 12px;
+  color: #6d6d64;
 }
 .complete-button {
   margin-top: 13px;
@@ -2130,7 +2133,7 @@ textarea:focus-visible {
   position: absolute;
   right: 13px;
   top: 13px;
-  color: #96968f;
+  color: #6c6c65;
 }
 .confidence-modal h2 {
   font:
@@ -2139,8 +2142,8 @@ textarea:focus-visible {
   margin: 8px 0;
 }
 .confidence-modal > p {
-  font-size: 10px;
-  color: #898981;
+  font-size: 13px;
+  color: #6c6c66;
   margin: 0;
 }
 .rating {
@@ -2156,7 +2159,7 @@ textarea:focus-visible {
   font:
     500 15px 'Newsreader',
     serif;
-  color: #71716a;
+  color: #6c6c65;
 }
 .rating button:hover,
 .rating button.selected {
@@ -2167,8 +2170,8 @@ textarea:focus-visible {
 .rating-ends {
   display: flex;
   justify-content: space-between;
-  color: #999991;
-  font-size: 8px;
+  color: #6c6c64;
+  font-size: 12px;
   margin-top: 6px;
 }
 .confidence-modal textarea {
@@ -2179,7 +2182,7 @@ textarea:focus-visible {
   border: 1px solid #e7e7e1;
   border-radius: 6px;
   padding: 9px;
-  font-size: 9px;
+  font-size: 13px;
 }
 .toast {
   position: fixed;
@@ -2196,7 +2199,7 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 10px;
+  font-size: 13px;
   animation: toast-in 0.2s ease-out;
 }
 .toast-check {
@@ -2277,10 +2280,10 @@ textarea:focus-visible {
     padding: 6px 4px;
   }
   .calendar-session span {
-    font-size: 6px;
+    font-size: 12px;
   }
   .calendar-session small {
-    font-size: 6px;
+    font-size: 12px;
   }
   .revision-topic {
     width: 170px;
@@ -2301,7 +2304,7 @@ textarea:focus-visible {
   }
   .mobile-menu {
     display: grid;
-    color: #75756e;
+    color: #6c6c65;
   }
   .topbar {
     padding: 0 20px;
@@ -2370,7 +2373,7 @@ textarea:focus-visible {
     padding: 0 14px;
   }
   .breadcrumbs {
-    font-size: 9px;
+    font-size: 13px;
     gap: 5px;
   }
   .top-actions {
@@ -2412,7 +2415,7 @@ textarea:focus-visible {
   .page-title-row .button {
     white-space: nowrap;
     padding: 0 8px;
-    font-size: 9px;
+    font-size: 13px;
   }
   .page-title-row .subhead {
     max-width: 230px;
@@ -2439,7 +2442,7 @@ textarea:focus-visible {
     grid-template-columns: 40px 14px 1fr;
   }
   .timeline-title b {
-    font-size: 9px;
+    font-size: 13px;
   }
   .timeline-content {
     padding-left: 10px;
@@ -2449,7 +2452,7 @@ textarea:focus-visible {
     gap: 9px;
   }
   .command-copy b {
-    font-size: 9px;
+    font-size: 13px;
   }
   .command-section form {
     width: 100%;
@@ -2515,7 +2518,7 @@ textarea:focus-visible {
     padding: 14px 12px;
   }
   .metric > span {
-    font-size: 7px;
+    font-size: 12px;
   }
   .metric > b {
     font-size: 25px;
@@ -2584,14 +2587,14 @@ textarea:focus-visible {
     position: absolute;
     top: 17px;
     right: 14px;
-    font-size: 6px;
+    font-size: 12px;
   }
   .insight-body h2 {
     font-size: 17px;
     padding-right: 54px;
   }
   .insight-body > p {
-    font-size: 9px;
+    font-size: 13px;
   }
   .insight-action {
     align-items: flex-start;
@@ -2606,7 +2609,7 @@ textarea:focus-visible {
     align-items: flex-start;
   }
   .week-navigation > b {
-    font-size: 9px;
+    font-size: 13px;
   }
   .agenda-row {
     gap: 8px;
@@ -2633,7 +2636,7 @@ textarea:focus-visible {
     left: auto;
     right: 17px;
     transform: none;
-    font-size: 7px;
+    font-size: 11px;
   }
   .focus-content {
     margin-top: 44px;
@@ -2663,8 +2666,8 @@ textarea:focus-visible {
   margin: 8px 0;
 }
 .change-modal > p {
-  font-size: 10px;
-  color: #85857f;
+  font-size: 13px;
+  color: #6c6c67;
   line-height: 1.5;
 }
 .change-modal > div:not(.eyebrow):not(.proposal-actions) {
@@ -2676,17 +2679,17 @@ textarea:focus-visible {
 }
 .change-modal > div > b,
 .proposed-sessions > b {
-  font-size: 9px;
-  color: #77776f;
+  font-size: 13px;
+  color: #6c6c65;
 }
 .change-modal > div > span,
 .proposed-sessions > span {
-  font-size: 10px;
+  font-size: 13px;
   color: #464640;
 }
 .change-modal small {
   float: right;
-  color: #92928a;
+  color: #6d6d65;
 }
 .proposal-actions {
   display: flex;
@@ -2704,15 +2707,15 @@ textarea:focus-visible {
 }
 .outcome-options > span {
   width: 100%;
-  font-size: 9px;
-  color: #77776f;
+  font-size: 13px;
+  color: #6c6c65;
 }
 .outcome-options button {
   border: 1px solid #e7e7e1;
   border-radius: 12px;
   padding: 5px 8px;
-  font-size: 8px;
-  color: #77776f;
+  font-size: 12px;
+  color: #6c6c65;
 }
 .outcome-options button.chosen {
   background: #efeff8;
@@ -2725,8 +2728,8 @@ textarea:focus-visible {
   gap: 4px;
 }
 .missed-button {
-  font-size: 7px;
-  color: #96968e;
+  font-size: 12px;
+  color: #6d6d65;
   opacity: 0;
   padding: 4px;
 }
@@ -2735,13 +2738,13 @@ textarea:focus-visible {
   opacity: 1;
 }
 .session-reason {
-  color: #85857f !important;
+  color: #6c6c67 !important;
   font-style: italic;
 }
 .replan-explanation > div > span {
   display: block;
-  font-size: 9px;
-  color: #85857f;
+  font-size: 13px;
+  color: #6c6c67;
   margin-top: 3px;
 }
 
@@ -2749,8 +2752,8 @@ textarea:focus-visible {
   display: grid;
   gap: 6px;
   margin-top: 12px;
-  font-size: 9px;
-  color: #77776f;
+  font-size: 13px;
+  color: #6c6c65;
 }
 .profile-modal label input {
   width: 100%;
@@ -2758,7 +2761,7 @@ textarea:focus-visible {
   border: 1px solid #e7e7e1;
   border-radius: 6px;
   padding: 0 9px;
-  font-size: 10px;
+  font-size: 14px;
   color: #33332e;
   background: #fff;
 }
@@ -2766,8 +2769,8 @@ textarea:focus-visible {
   margin-top: 16px;
 }
 .readiness-label {
-  font-size: 7px !important;
-  color: #85857f !important;
+  font-size: 12px !important;
+  color: #6c6c67 !important;
   line-height: 1.25;
 }
 .brand-mark {
@@ -2811,15 +2814,15 @@ textarea:focus-visible {
   display: grid;
   place-items: center;
   border-radius: 5px;
-  color: #86868b;
+  color: #6b6b70;
 }
 .subject-remove:hover {
   background: #fff1f0;
-  color: #ff3b30;
+  color: #d80b00;
 }
 .subject-description {
-  font-size: 9px;
-  color: #6e6e73;
+  font-size: 13px;
+  color: #6c6c70;
   margin: -11px 0 14px;
 }
 .subjects-empty {
@@ -2838,9 +2841,9 @@ textarea:focus-visible {
   margin: 13px 0 6px;
 }
 .subjects-empty p {
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.6;
-  color: #6e6e73;
+  color: #6c6c70;
   margin: 0 auto 17px;
   max-width: 390px;
 }
@@ -2859,13 +2862,13 @@ textarea:focus-visible {
 }
 .empty-panel p,
 .empty-copy {
-  font-size: 10px;
+  font-size: 13px;
   line-height: 1.5;
-  color: #6e6e73;
+  color: #6c6c70;
 }
 .subject-editor label .optional-label {
-  font-size: 8px;
-  color: #86868b;
+  font-size: 12px;
+  color: #6b6b70;
 }
 .subject-editor .proposal-actions {
   display: flex;
@@ -2878,7 +2881,7 @@ textarea:focus-visible {
 }
 .form-error {
   margin-top: 9px !important;
-  color: #ff3b30 !important;
+  color: #d80b00 !important;
 }
 .button.destructive {
   background: #ff3b30;
@@ -2976,5 +2979,107 @@ textarea:focus-visible {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Sample data notice and onboarding. */
+.sample-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid #dedeef;
+  border-radius: 8px;
+  background: var(--accent-pale);
+  font-size: 13px;
+  line-height: 1.5;
+  color: #4a4a5c;
+}
+.sample-notice .button {
+  flex: 0 0 auto;
+}
+.profile-modal label > span {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.profile-modal .optional-label {
+  font-size: 12px;
+  color: #6b6b64;
+}
+.onboarding-modal > svg {
+  margin-bottom: 12px;
+}
+.onboarding-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+.onboarding-actions .button {
+  width: 100%;
+  margin-top: 0 !important;
+}
+.subjects-empty .button + .button {
+  margin-left: 8px;
+}
+@media (max-width: 600px) {
+  .sample-notice {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .subjects-empty .button + .button {
+    margin: 8px 0 0;
+  }
+}
+@media (max-width: 600px) {
+  /* 16px stops iOS Safari from zooming the page when a field is focused. */
+  input {
+    font-size: 16px !important;
+  }
+}
+
+/* Calendar: cards are as tall as the session lasts, on a 60px-per-hour grid shared with the hour labels. */
+.calendar-column {
+  background-image: linear-gradient(#ecece6 1px, transparent 1px);
+  background-size: 100% 60px;
+  background-position: 0 38px;
+}
+.time-labels span {
+  flex: 0 0 60px;
+}
+.calendar-session {
+  min-height: 0;
+  overflow: hidden;
+  padding: 5px 6px;
+  gap: 2px;
+}
+.calendar-session b,
+.calendar-session span,
+.calendar-session small {
+  max-width: 100%;
+  margin-top: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+  flex-shrink: 0;
+}
+
+/* Keep each piece of session metadata on one line; wrap between pieces instead. */
+.timeline-meta {
+  flex-wrap: wrap;
+  row-gap: 3px;
+}
+.timeline-meta > span,
+.now-tag,
+.priority-tag,
+.agenda-duration {
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .corner-mark {
+    display: none;
   }
 }

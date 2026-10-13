@@ -28,12 +28,39 @@ const validSession = {
 };
 
 describe('loadDaymarkState', () => {
-  it('falls back to defaults when the saved JSON is corrupt', () => {
+  it('backs up unreadable saved data and starts a fresh, neutral profile', () => {
     store.set('daymark-state', '{not json');
     const state = loadDaymarkState();
-    expect(state.version).toBe(1);
-    expect(state.sessions.length).toBeGreaterThan(0);
-    expect(state.planChanges).toEqual([]);
+    expect(store.get('daymark-state-unreadable-backup')).toBe('{not json');
+    expect(state).toMatchObject({ version: 1, onboarded: false, subjects: [], sessions: [], planChanges: [] });
+    expect(state.profile).toEqual({ name: '', course: '', year: '' });
+  });
+
+  it('starts a brand-new browser with onboarding and no placeholder data', () => {
+    const state = loadDaymarkState();
+    expect(state.onboarded).toBe(false);
+    expect(state.profile.name).toBe('');
+    expect(state.subjects).toEqual([]);
+  });
+
+  it('treats saved state from before onboarding existed as an existing user, unchanged', () => {
+    const profile = { name: 'Farah Fathima', course: 'Computer Science', year: '2' };
+    const subject = { name: 'Maths', short: 'M', color: '#eee', needsWork: 'x', mastery: 50, examDate: '2026-09-29' };
+    store.set('daymark-state', JSON.stringify({ profile, subjects: [subject], sessions: [validSession] }));
+    const state = loadDaymarkState();
+    expect(state.onboarded).toBe(true);
+    expect(state.profile).toEqual(profile);
+    expect(state.subjects[0].examDate).toBe('2026-09-29');
+    expect(state.sessions).toHaveLength(1);
+  });
+
+  it('migrates legacy keys with sample subjects dated from today', () => {
+    store.set('daymark-sessions', JSON.stringify([validSession]));
+    const today = new Date(2026, 9, 13);
+    const state = loadDaymarkState(today);
+    expect(state.onboarded).toBe(true);
+    expect(state.sessions).toHaveLength(1);
+    expect(state.subjects.every((subject) => subject.sample && subject.examDate! > '2026-10-13')).toBe(true);
   });
 
   it('round-trips saved state', () => {

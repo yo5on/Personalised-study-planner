@@ -18,7 +18,7 @@ import {
   type StudyOutcome,
   type PlanChange,
 } from './services/agents';
-import { weekForDate, localDateKey, type Session, type Subject } from './data';
+import { weekForDate, localDateKey, sampleSubjects, sampleSessions, type Session, type Subject } from './data';
 import { DaymarkMark } from './components/DaymarkMark';
 import { Dialog } from './components/Dialog';
 import { useCountdown } from './hooks/useCountdown';
@@ -47,6 +47,7 @@ import {
   Plus,
   RotateCcw,
   Sparkles,
+  UserRound,
   X,
 } from 'lucide-react';
 
@@ -60,6 +61,9 @@ const nav: { name: Page; icon: typeof Home }[] = [
   { name: 'Insights', icon: Lightbulb },
 ];
 const WEEKLY_GOAL_MINUTES = 540;
+const initialOf = (profile: DaymarkProfile) => profile.name.trim().charAt(0).toUpperCase();
+const profileDetails = (profile: DaymarkProfile) =>
+  [profile.course, profile.year && `Year ${profile.year}`].filter(Boolean).join(' · ') || 'Add your course and year';
 // A missed session is only logged once the user accepts the rescheduled plan.
 type PendingChange = PlanChange & { missedRecord?: StudyRecord };
 
@@ -84,6 +88,39 @@ function App() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [subjectEditor, setSubjectEditor] = useState<{ mode: 'add' | 'rename'; subject?: Subject } | null>(null);
   const [subjectToRemove, setSubjectToRemove] = useState<Subject | null>(null);
+  const [clearSampleOpen, setClearSampleOpen] = useState(false);
+  const hasSampleData = activeSubjects.some((subject) => subject.sample);
+  const loadSampleData = () => {
+    setAppState((prev) => {
+      const taken = new Set(prev.subjects.map((subject) => subject.name.toLocaleLowerCase()));
+      const subjects = sampleSubjects(today).filter((subject) => !taken.has(subject.name.toLocaleLowerCase()));
+      const names = new Set(subjects.map((subject) => subject.name));
+      const firstId = Math.max(0, ...prev.sessions.map((s) => s.id));
+      const sessions = sampleSessions(today)
+        .filter((session) => names.has(session.subject))
+        .map((session, i) => ({ ...session, id: firstId + i + 1 }));
+      return { ...prev, subjects: [...prev.subjects, ...subjects], sessions: normaliseStatuses([...prev.sessions, ...sessions]) };
+    });
+    notify('Sample subjects added. Clear them any time.');
+  };
+  const clearSampleData = () => {
+    setAppState((prev) => {
+      const names = new Set(prev.subjects.filter((subject) => subject.sample).map((subject) => subject.name));
+      return {
+        ...prev,
+        subjects: prev.subjects.filter((subject) => !subject.sample),
+        sessions: prev.sessions.filter((session) => !session.sample && !names.has(session.subject)),
+      };
+    });
+    setClearSampleOpen(false);
+    setPending(null);
+    notify('Sample data cleared');
+  };
+  const finishOnboarding = (next: DaymarkProfile, withSample: boolean) => {
+    setAppState((prev) => ({ ...prev, profile: next, onboarded: true }));
+    if (withSample) loadSampleData();
+    else setPage('Subjects');
+  };
   const saveProfile = (next: DaymarkProfile) => setAppState((prev) => ({ ...prev, profile: next }));
   useEffect(() => {
     saveDaymarkState(appState);
@@ -94,7 +131,8 @@ function App() {
     toastTimer.current = window.setTimeout(() => setToast(''), 2800);
   }, []);
   useEffect(() => () => window.clearTimeout(toastTimer.current), []);
-  const timer = useCountdown(useCallback(() => notify('Time’s up. Mark the session complete when you’re ready.'), [notify]));
+  // useCountdown keeps the latest callback in a ref, so this doesn't need memoising.
+  const timer = useCountdown(() => notify('Time’s up. Mark the session complete when you’re ready.'));
   const minutes = Math.floor(timer.remaining / 60);
   const seconds = timer.remaining % 60;
   const replan = () => setPending(adaptationAgent.replan(sessions, 'rebalance today', records, activeSubjects));
@@ -179,6 +217,14 @@ function App() {
   };
   const summary = progressAgent.summary(records, today);
   const hasObservations = generateObservations(records).length > 0;
+  const toastMessage = toast && (
+    <div className="toast" role="status">
+      <span className="toast-check">
+        <Check size={14} />
+      </span>
+      {toast}
+    </div>
+  );
   if (focus)
     return (
       <div className="focus-mode">
@@ -303,6 +349,7 @@ function App() {
             </div>
           </Dialog>
         )}
+        {toastMessage}
       </div>
     );
   return (
@@ -356,12 +403,10 @@ function App() {
             <ChevronRight size={15} />
           </button>
           <button className="profile" onClick={() => setProfileOpen(true)} aria-label="Edit profile">
-            <div className="avatar">{profile.name.trim().charAt(0).toUpperCase()}</div>
+            <div className="avatar">{initialOf(profile) || <UserRound size={15} aria-hidden="true" />}</div>
             <div className="profile-name">
-              <b>{profile.name}</b>
-              <span>
-                {profile.course} · Year {profile.year}
-              </span>
+              <b>{profile.name || 'Add your name'}</b>
+              <span>{profileDetails(profile)}</span>
             </div>
             <MoreHorizontal size={18} />
           </button>
@@ -400,11 +445,21 @@ function App() {
               <CircleHelp size={17} />
             </button>
             <button className="top-avatar" onClick={() => setProfileOpen(true)} aria-label="Edit profile">
-              {profile.name.trim().charAt(0).toUpperCase()}
+              {initialOf(profile) || <UserRound size={15} aria-hidden="true" />}
             </button>
           </div>
         </header>
         <div className="page-wrap">
+          {hasSampleData && (page === 'Home' || page === 'Subjects') && (
+            <div className="sample-notice" role="note">
+              <span>
+                <b>You’re exploring sample subjects.</b> Exam dates are counted from today. Clear them when you’re ready to add your own.
+              </span>
+              <button className="button outline" onClick={() => setClearSampleOpen(true)}>
+                Clear sample data
+              </button>
+            </div>
+          )}
           {page === 'Home' ? (
             <HomePage
               explanation={lastExplanation}
@@ -444,7 +499,7 @@ function App() {
               onAdd={() => setSubjectEditor({ mode: 'add' })}
               onRename={(subject) => setSubjectEditor({ mode: 'rename', subject })}
               onRemove={(subject) => setSubjectToRemove(subject)}
-              onStart={start}
+              onLoadSample={loadSampleData}
             />
           ) : page === 'Progress' ? (
             <ProgressPage summary={summary} records={records} subjects={activeSubjects} onNavigate={setPage} />
@@ -500,6 +555,29 @@ function App() {
             notify('Subject removed from future planning');
           }}
         />
+      )}
+      {!appState.onboarded && <OnboardingModal onFinish={finishOnboarding} />}
+      {clearSampleOpen && (
+        <Dialog onClose={() => setClearSampleOpen(false)}>
+          <section className="confidence-modal remove-modal" role="alertdialog" aria-modal="true" aria-labelledby="clear-sample-heading">
+            <button className="modal-close" onClick={() => setClearSampleOpen(false)} aria-label="Keep sample data">
+              <X size={18} />
+            </button>
+            <div className="eyebrow">SAMPLE DATA</div>
+            <h2 id="clear-sample-heading">Clear the sample subjects?</h2>
+            <p>
+              Sample subjects and their sessions will be removed. Subjects you added yourself and your saved check-ins stay as they are.
+            </p>
+            <div className="proposal-actions">
+              <button className="button destructive" onClick={clearSampleData}>
+                Clear sample data
+              </button>
+              <button className="button outline" onClick={() => setClearSampleOpen(false)} autoFocus>
+                Keep for now
+              </button>
+            </div>
+          </section>
+        </Dialog>
       )}
       {profileOpen && (
         <ProfileModal
@@ -558,14 +636,7 @@ function App() {
           </div>
         </Dialog>
       )}
-      {toast && (
-        <div className="toast" role="status">
-          <span className="toast-check">
-            <Check size={14} />
-          </span>
-          {toast}
-        </div>
-      )}
+      {toastMessage}
     </div>
   );
 }
@@ -585,6 +656,60 @@ function ProposedDay({ sessions }: { sessions: Session[] }) {
         <span>No sessions left today.</span>
       )}
     </div>
+  );
+}
+
+function OnboardingModal({ onFinish }: { onFinish: (profile: DaymarkProfile, withSample: boolean) => void }) {
+  const [name, setName] = useState('');
+  const [course, setCourse] = useState('');
+  const [year, setYear] = useState('');
+  const profile = () => ({ name: name.trim(), course: course.trim(), year: year.trim() });
+  return (
+    <Dialog onClose={() => onFinish(profile(), false)}>
+      <form
+        className="confidence-modal profile-modal onboarding-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="onboarding-heading"
+        aria-describedby="onboarding-copy"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+          onFinish(profile(), submitter?.value === 'sample');
+        }}
+      >
+        <DaymarkMark size={30} />
+        <div className="eyebrow">WELCOME TO DAYMARK</div>
+        <h2 id="onboarding-heading">Let’s set up your space.</h2>
+        <p id="onboarding-copy">Everything stays in this browser. You can change these details any time from your profile.</p>
+        <label>
+          <span>
+            Your name <span className="optional-label">Optional</span>
+          </span>
+          <input maxLength={60} value={name} onChange={(e) => setName(e.target.value)} autoComplete="given-name" autoFocus />
+        </label>
+        <label>
+          <span>
+            Course <span className="optional-label">Optional</span>
+          </span>
+          <input maxLength={80} value={course} onChange={(e) => setCourse(e.target.value)} placeholder="e.g. Computer Science" />
+        </label>
+        <label>
+          <span>
+            Year <span className="optional-label">Optional</span>
+          </span>
+          <input maxLength={20} value={year} onChange={(e) => setYear(e.target.value)} placeholder="e.g. 2" />
+        </label>
+        <div className="onboarding-actions">
+          <button className="button primary" type="submit" value="blank">
+            Start with my own subjects
+          </button>
+          <button className="button outline" type="submit" value="sample">
+            Explore with sample subjects
+          </button>
+        </div>
+      </form>
+    </Dialog>
   );
 }
 
@@ -622,14 +747,18 @@ function ProfileModal({
           <input required maxLength={60} value={name} onChange={(e) => setName(e.target.value)} />
         </label>
         <label>
-          Course
-          <input required maxLength={80} value={course} onChange={(e) => setCourse(e.target.value)} />
+          <span>
+            Course <span className="optional-label">Optional</span>
+          </span>
+          <input maxLength={80} value={course} onChange={(e) => setCourse(e.target.value)} placeholder="e.g. Computer Science" />
         </label>
         <label>
-          Year
-          <input required maxLength={20} value={year} onChange={(e) => setYear(e.target.value)} />
+          <span>
+            Year <span className="optional-label">Optional</span>
+          </span>
+          <input maxLength={20} value={year} onChange={(e) => setYear(e.target.value)} placeholder="e.g. 2" />
         </label>
-        <button className="button primary full" type="submit" disabled={!name.trim() || !course.trim() || !year.trim()}>
+        <button className="button primary full" type="submit" disabled={!name.trim()}>
           Save profile
         </button>
       </form>
@@ -801,7 +930,9 @@ function HomePage({
         <div>
           <div className="eyebrow">
             {today.toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}{' '}
-            <span className="sun-mark">☀</span>
+            <span className="sun-mark" aria-hidden="true">
+              ☀
+            </span>
           </div>
           <h1>
             Make today <em>count.</em>
@@ -850,7 +981,9 @@ function HomePage({
                   <Clock3 size={14} /> {active.time} · {active.priority} priority
                 </span>
               </div>
-              <div className="corner-mark">✳</div>
+              <div className="corner-mark" aria-hidden="true">
+                ✳
+              </div>
             </>
           ) : todaySessions.length ? (
             <div className="empty-panel">
@@ -918,7 +1051,7 @@ function HomePage({
             </div>
           </div>
           <div className="day-note">
-            <span>↗</span> A lighter evening leaves room to recharge.
+            <span aria-hidden="true">↗</span> A lighter evening leaves room to recharge.
           </div>
         </section>
         <section className="schedule-section">
@@ -1048,7 +1181,9 @@ function HomePage({
             {revisit.length
               ? revisit.map((record, i) => (
                   <button className="focus-topic" key={`${record.subject}-${record.topic}`} onClick={() => onNavigate('Revision')}>
-                    <span className={`topic-symbol ${i === 0 ? 'warm' : 'lilac'}`}>↺</span>
+                    <span aria-hidden="true" className={`topic-symbol ${i === 0 ? 'warm' : 'lilac'}`}>
+                      ↺
+                    </span>
                     <span>
                       <b>{record.topic}</b>
                       <small>
@@ -1060,7 +1195,9 @@ function HomePage({
                 ))
               : activeSubjects.slice(0, 3).map((subject) => (
                   <button className="focus-topic" key={subject.name} onClick={() => onNavigate('Revision')}>
-                    <span className={`topic-symbol ${['warm', 'lilac', 'green'][activeSubjects.indexOf(subject)]}`}>↺</span>
+                    <span aria-hidden="true" className={`topic-symbol ${['warm', 'lilac', 'green'][activeSubjects.indexOf(subject)]}`}>
+                      ↺
+                    </span>
                     <span>
                       <b>{subject.needsWork}</b>
                       <small>{subject.name} · A good topic to revisit</small>
@@ -1114,7 +1251,7 @@ function HomePage({
 }
 
 const CALENDAR_TOP = 38;
-const HOUR_HEIGHT = 40;
+const HOUR_HEIGHT = 60;
 function timeToMinutes(time: string): number {
   const [hour, minute] = time.split(':').map(Number);
   return hour * 60 + minute;
@@ -1246,7 +1383,13 @@ function PlanPage({
                     return (
                       <button
                         className={`calendar-session ${done ? 'is-done' : ''}`}
-                        style={{ top: `${CALENDAR_TOP + (offset / 60) * HOUR_HEIGHT}px`, background: s.tint, borderColor: s.tint }}
+                        style={{
+                          top: `${CALENDAR_TOP + (offset / 60) * HOUR_HEIGHT}px`,
+                          height: `${Math.max(30, (s.minutes / 60) * HOUR_HEIGHT - 2)}px`,
+                          background: s.tint,
+                          borderColor: s.tint,
+                        }}
+                        title={`${s.subject}: ${s.topic} · ${s.time} · ${s.minutes} min`}
                         key={s.id}
                         onClick={() => onStart(s)}
                         disabled={done}
@@ -1275,7 +1418,7 @@ function PlanPage({
         <aside className="plan-aside">
           <div className="aside-block">
             <div className="eyebrow">COMING UP</div>
-            <h3>Exams on the horizon</h3>
+            <h2>Exams on the horizon</h2>
             {examSubjects.length ? (
               examSubjects.map((s) => {
                 const days = daysUntilDate(s.examDate!, today);
@@ -1323,7 +1466,7 @@ function PlanPage({
             <div className="eyebrow">
               {today.toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}
             </div>
-            <h3>Today’s sessions</h3>
+            <h2>Today’s sessions</h2>
           </div>
           <span className="agenda-total">{todaySessions.reduce((n, s) => n + s.minutes, 0)} min planned</span>
         </div>
@@ -1367,13 +1510,14 @@ function SubjectsPage({
   onAdd,
   onRename,
   onRemove,
+  onLoadSample,
 }: {
   subjects: Subject[];
   records: StudyRecord[];
   onAdd: () => void;
   onRename: (subject: Subject) => void;
   onRemove: (subject: Subject) => void;
-  onStart: (session: Session) => void;
+  onLoadSample: () => void;
 }) {
   return (
     <>
@@ -1421,14 +1565,18 @@ function SubjectsPage({
                   </div>
                   <div className="subject-insights">
                     <div>
-                      <span className="insight-check">↗</span>
+                      <span className="insight-check" aria-hidden="true">
+                        ↗
+                      </span>
                       <span>
                         <small>Coming along</small>
                         <b>{s.strong}</b>
                       </span>
                     </div>
                     <div>
-                      <span className="insight-warn">✳</span>
+                      <span className="insight-warn" aria-hidden="true">
+                        ✳
+                      </span>
                       <span>
                         <small>Needs a bit more</small>
                         <b>{s.needsWork}</b>
@@ -1446,7 +1594,9 @@ function SubjectsPage({
             })}
           </div>
           <div className="subject-bottom-note">
-            <span className="note-star">✳</span>
+            <span className="note-star" aria-hidden="true">
+              ✳
+            </span>
             <p>
               <b>Mastery is a moving picture.</b> Each confidence check-in nudges it up or down, so it reflects how sessions actually felt,
               not just what you’ve finished.
@@ -1462,6 +1612,9 @@ function SubjectsPage({
           <p>Add a subject to build your first study plan. Daymark will keep its sessions, progress and revision connected as you go.</p>
           <button className="button primary" onClick={onAdd}>
             <Plus size={15} /> Add your first subject
+          </button>
+          <button className="button outline" onClick={onLoadSample}>
+            Explore with sample subjects
           </button>
         </div>
       )}
@@ -1543,7 +1696,7 @@ function ProgressPage({
           <div className="section-head">
             <div>
               <div className="eyebrow">STUDY TIME</div>
-              <h3>Your week, so far</h3>
+              <h2>Your week, so far</h2>
             </div>
             <span className="chart-legend">
               <i /> This week
@@ -1576,7 +1729,7 @@ function ProgressPage({
           <div className="section-head">
             <div>
               <div className="eyebrow">BY SUBJECT</div>
-              <h3>Where you stand</h3>
+              <h2>Where you stand</h2>
             </div>
             <button className="text-button" onClick={() => onNavigate('Subjects')}>
               Details <ArrowRight size={14} />
@@ -1601,7 +1754,7 @@ function ProgressPage({
           <div className="section-head">
             <div>
               <div className="eyebrow">CONSISTENCY</div>
-              <h3>Showing up matters.</h3>
+              <h2>Showing up matters.</h2>
             </div>
           </div>
           <div className="consistency-big">
@@ -1630,7 +1783,7 @@ function ProgressPage({
           </span>
           <div>
             <div className="eyebrow">A PATTERN WE NOTICED</div>
-            <h3>{evaluationAgent.insight(records)}</h3>
+            <h2>{evaluationAgent.insight(records)}</h2>
             <p>Based on saved sessions and check-ins.</p>
           </div>
           <button className="text-button" onClick={() => onNavigate('Insights')}>
@@ -1731,7 +1884,7 @@ function RevisionPage({ records, subjects, onStart }: { records: StudyRecord[]; 
         </div>
       )}
       <div className="revision-tip">
-        <span>✳</span>
+        <span aria-hidden="true">✳</span>
         <div>
           <b>Small and spaced beats one long cram.</b>
           <p>Revisiting a topic just before it starts to fade makes the memory easier to find next time.</p>
