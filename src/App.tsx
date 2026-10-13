@@ -1,23 +1,28 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   adaptationAgent,
   evaluationAgent,
   progressAgent,
   generateObservations,
   evaluateReadiness,
-  generateRevisionPlan,
   addSubject as addSubjectAgent,
   createSubjectSession,
   renameSubjectReferences,
   removeSubjectFromPlanning,
+  updateSubjectDetails,
+  updateMastery,
+  normaliseStatuses,
+  sortByTime,
+  topicsToRevisit,
   type StudyRecord,
   type StudyOutcome,
   type PlanChange,
 } from './services/agents';
 import { weekForDate, localDateKey, type Session, type Subject } from './data';
 import { DaymarkMark } from './components/DaymarkMark';
+import { Dialog } from './components/Dialog';
+import { useCountdown } from './hooks/useCountdown';
 import { loadDaymarkState, saveDaymarkState, type DaymarkProfile } from './services/storage';
-import type { Dispatch, SetStateAction } from 'react';
 import {
   Activity,
   ArrowRight,
@@ -54,6 +59,9 @@ const nav: { name: Page; icon: typeof Home }[] = [
   { name: 'Revision', icon: RotateCcw },
   { name: 'Insights', icon: Lightbulb },
 ];
+const WEEKLY_GOAL_MINUTES = 540;
+// A missed session is only logged once the user accepts the rescheduled plan.
+type PendingChange = PlanChange & { missedRecord?: StudyRecord };
 
 function App() {
   const [appState, setAppState] = useState(loadDaymarkState);
@@ -64,49 +72,34 @@ function App() {
   const [page, setPage] = useState<Page>('Home');
   const [replanned, setReplanned] = useState(false);
   const [lastExplanation, setLastExplanation] = useState('');
-  const [pending, setPending] = useState<PlanChange | null>(null);
+  const [pending, setPending] = useState<PendingChange | null>(null);
   const [outcome, setOutcome] = useState<StudyOutcome>('understood');
   const [command, setCommand] = useState('');
   const [toast, setToast] = useState('');
+  const toastTimer = useRef<number | undefined>(undefined);
   const [focus, setFocus] = useState<Session | null>(null);
-  const [minutes, setMinutes] = useState(25);
-  const [seconds, setSeconds] = useState(0);
-  const [running, setRunning] = useState(false);
   const [confidence, setConfidence] = useState(0);
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [mobileNav, setMobileNav] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [subjectEditor, setSubjectEditor] = useState<{ mode: 'add' | 'rename'; subject?: Subject } | null>(null);
   const [subjectToRemove, setSubjectToRemove] = useState<Subject | null>(null);
-  const setSessions: Dispatch<SetStateAction<Session[]>> = (next) =>
-    setAppState((prev) => ({ ...prev, sessions: typeof next === 'function' ? next(prev.sessions) : next }));
-  const setRecords: Dispatch<SetStateAction<StudyRecord[]>> = (next) =>
-    setAppState((prev) => ({ ...prev, records: typeof next === 'function' ? next(prev.records) : next }));
   const saveProfile = (next: DaymarkProfile) => setAppState((prev) => ({ ...prev, profile: next }));
   useEffect(() => {
     saveDaymarkState(appState);
   }, [appState]);
-  useEffect(() => {
-    if (!running) return;
-    const i = setInterval(() => {
-      if (seconds === 0) {
-        if (minutes === 0) {
-          setRunning(false);
-          return;
-        }
-        setMinutes((m) => m - 1);
-        setSeconds(59);
-      } else setSeconds((s) => s - 1);
-    }, 1000);
-    return () => clearInterval(i);
-  }, [running, minutes, seconds]);
-  const notify = (s: string) => {
+  const notify = useCallback((s: string) => {
+    window.clearTimeout(toastTimer.current);
     setToast(s);
-    setTimeout(() => setToast(''), 2800);
-  };
+    toastTimer.current = window.setTimeout(() => setToast(''), 2800);
+  }, []);
+  useEffect(() => () => window.clearTimeout(toastTimer.current), []);
+  const timer = useCountdown(useCallback(() => notify('Time’s up. Mark the session complete when you’re ready.'), [notify]));
+  const minutes = Math.floor(timer.remaining / 60);
+  const seconds = timer.remaining % 60;
   const replan = () => setPending(adaptationAgent.replan(sessions, 'rebalance today', records, activeSubjects));
   const markMissed = (session: Session) => {
-    const missed = {
+    const missedRecord: StudyRecord = {
       sessionId: session.id,
       topic: session.topic,
       subject: session.subject,
@@ -117,14 +110,14 @@ function App() {
       sessionTime: session.time,
       at: new Date().toISOString(),
     };
-    setRecords((prev) => [...prev, missed]);
-    setPending(adaptationAgent.replan(sessions, `I missed my morning session: ${session.topic}`, [...records, missed], activeSubjects));
+    setPending({
+      ...adaptationAgent.replan(sessions, `missed ${session.topic}`, records, activeSubjects, { missedSessionId: session.id }),
+      missedRecord,
+    });
   };
   const start = (s: Session) => {
     setFocus(s);
-    setMinutes(s.minutes);
-    setSeconds(0);
-    setRunning(false);
+    timer.reset(s.minutes * 60);
     setConfidence(0);
     setOutcome('understood');
     setCheckInOpen(false);
@@ -136,27 +129,30 @@ function App() {
   };
   const complete = () => {
     if (focus && confidence > 0) {
-      const elapsedSeconds = focus.minutes * 60 - (minutes * 60 + seconds);
+      const elapsedSeconds = focus.minutes * 60 - timer.remaining;
       const actual = Math.max(0, Math.floor(elapsedSeconds / 60));
-      setSessions(sessions.map((s) => (s.id === focus.id ? { ...s, status: 'done' as const, confidence: confidence || undefined } : s)));
-      setRecords([
-        ...records,
-        {
-          sessionId: focus.id,
-          topic: focus.topic,
-          subject: focus.subject,
-          plannedMinutes: focus.minutes,
-          actualMinutes: actual,
-          confidence,
-          outcome,
-          completed: true,
-          sessionTime: focus.time,
-          at: new Date().toISOString(),
-        },
-      ]);
+      const record: StudyRecord = {
+        sessionId: focus.id,
+        topic: focus.topic,
+        subject: focus.subject,
+        plannedMinutes: focus.minutes,
+        actualMinutes: actual,
+        confidence,
+        outcome,
+        completed: true,
+        sessionTime: focus.time,
+        at: new Date().toISOString(),
+      };
+      // Review sessions from the Revision page aren't in the plan, so only the record is saved for them.
+      setAppState((prev) => ({
+        ...prev,
+        subjects: prev.subjects.map((s) => (s.name === focus.subject ? { ...s, mastery: updateMastery(s.mastery, confidence) } : s)),
+        sessions: normaliseStatuses(prev.sessions.map((s) => (s.id === focus.id ? { ...s, status: 'done' as const, confidence } : s))),
+        records: [...prev.records, record],
+      }));
       notify('Check-in saved for your next plan.');
     }
-    setRunning(false);
+    timer.pause();
     setCheckInOpen(false);
     setFocus(null);
   };
@@ -166,7 +162,23 @@ function App() {
     const result = adaptationAgent.replan(sessions, command, records, activeSubjects);
     setPending(result);
   };
-  const mins = progressAgent.summary(records).weeklyMinutes;
+  const acceptPending = (change: PendingChange) => {
+    const { missedRecord, ...planChange } = change;
+    setAppState((prev) => ({
+      ...prev,
+      sessions: planChange.sessions,
+      records: missedRecord ? [...prev.records, missedRecord] : prev.records,
+      planChanges: [...prev.planChanges, planChange],
+    }));
+    setLastExplanation(planChange.explanation);
+    setReplanned(true);
+    setPending(null);
+    setPage('Plan');
+    setCommand('');
+    notify('Plan changes accepted');
+  };
+  const summary = progressAgent.summary(records, today);
+  const hasObservations = generateObservations(records).length > 0;
   if (focus)
     return (
       <div className="focus-mode">
@@ -174,7 +186,9 @@ function App() {
           <button
             className="icon-button"
             onClick={() => {
-              setRunning(false);
+              const started = timer.remaining < focus.minutes * 60;
+              if (started && !window.confirm('Leave this session? Your timer progress won’t be saved.')) return;
+              timer.pause();
               setFocus(null);
             }}
             aria-label="Exit session"
@@ -192,25 +206,22 @@ function App() {
           </div>
           <h1>{focus.topic}</h1>
           <p className="focus-objective">{focus.objective}</p>
-          <div className="timer">
+          <div className="timer" role="timer" aria-label={`${minutes} minutes ${seconds} seconds remaining`}>
             {String(minutes).padStart(2, '0')}
             <i>:</i>
             {String(seconds).padStart(2, '0')}
           </div>
           <div className="timer-caption">A little progress goes a long way.</div>
           <div className="timer-actions">
-            <button className="button primary" onClick={() => setRunning(!running)}>
-              {running ? <Pause size={16} /> : <Play size={16} fill="currentColor" />}
-              {running ? 'Pause' : 'Start focus'}
-            </button>
             <button
-              className="button quiet"
-              onClick={() => {
-                setMinutes(focus.minutes);
-                setSeconds(0);
-                setRunning(false);
-              }}
+              className="button primary"
+              onClick={() => (timer.running ? timer.pause() : timer.start())}
+              disabled={!timer.running && timer.remaining === 0}
             >
+              {timer.running ? <Pause size={16} /> : <Play size={16} fill="currentColor" />}
+              {timer.running ? 'Pause' : timer.remaining < focus.minutes * 60 && timer.remaining > 0 ? 'Resume' : 'Start focus'}
+            </button>
+            <button className="button quiet" onClick={() => timer.reset(focus.minutes * 60)}>
               <RotateCcw size={15} /> Reset
             </button>
           </div>
@@ -232,7 +243,7 @@ function App() {
           <button
             className="button complete-button"
             onClick={() => {
-              setRunning(false);
+              timer.pause();
               setCheckInOpen(true);
             }}
           >
@@ -240,17 +251,18 @@ function App() {
           </button>
         </div>
         {checkInOpen && (
-          <div className="modal-backdrop">
-            <div className="confidence-modal">
-              <button className="modal-close" onClick={closeCheckIn}>
+          <Dialog onClose={closeCheckIn}>
+            <div className="confidence-modal" role="dialog" aria-modal="true" aria-labelledby="check-in-heading">
+              <button className="modal-close" onClick={closeCheckIn} aria-label="Close check-in">
                 <X size={18} />
               </button>
               <div className="eyebrow">SESSION CHECK-IN</div>
-              <h2>How did that feel?</h2>
+              <h2 id="check-in-heading">How did that feel?</h2>
               <p>Your answer helps us shape the next session.</p>
-              <div className="rating">
+              <div className="rating" role="group" aria-label="Confidence from 1, still foggy, to 5, feeling good">
                 {[1, 2, 3, 4, 5].map((n) => (
                   <button
+                    aria-label={`Confidence ${n} of 5`}
                     onClick={() => setConfidence(n)}
                     className={confidence === n ? 'selected' : ''}
                     aria-pressed={confidence === n}
@@ -274,7 +286,13 @@ function App() {
                     ['unfinished', "Didn't finish"],
                   ] as [StudyOutcome, string][]
                 ).map(([v, label]) => (
-                  <button type="button" className={outcome === v ? 'chosen' : ''} onClick={() => setOutcome(v)} key={v}>
+                  <button
+                    type="button"
+                    className={outcome === v ? 'chosen' : ''}
+                    aria-pressed={outcome === v}
+                    onClick={() => setOutcome(v)}
+                    key={v}
+                  >
                     {label}
                   </button>
                 ))}
@@ -283,13 +301,14 @@ function App() {
                 Save check-in <ArrowRight size={16} />
               </button>
             </div>
-          </div>
+          </Dialog>
         )}
       </div>
     );
   return (
     <div className="app-shell">
-      <aside className={`sidebar ${mobileNav ? 'open' : ''}`}>
+      {mobileNav && <button className="nav-scrim" aria-label="Close menu" onClick={() => setMobileNav(false)} />}
+      <aside className={`sidebar ${mobileNav ? 'open' : ''}`} id="daymark-navigation">
         <div className="brand">
           <DaymarkMark size={27} className="brand-mark" />
           <span>daymark</span>
@@ -301,6 +320,7 @@ function App() {
             <button
               key={name}
               className={`nav-item ${page === name ? 'active' : ''}`}
+              aria-current={page === name ? 'page' : undefined}
               onClick={() => {
                 setPage(name);
                 setMobileNav(false);
@@ -308,21 +328,33 @@ function App() {
             >
               <Icon size={17} strokeWidth={1.8} />
               {name}
-              {name === 'Insights' && <span className="nav-dot" />}
+              {name === 'Insights' && hasObservations && <span className="nav-dot" aria-label="New observations" />}
             </button>
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="streak-box">
+          <button
+            className="streak-box"
+            onClick={() => {
+              setPage('Progress');
+              setMobileNav(false);
+            }}
+          >
             <div className="streak-icon">
               <Flame size={16} />
             </div>
             <div>
-              <b>5 day streak</b>
-              <span>You're finding your rhythm</span>
+              <b>{summary.streak ? `${summary.streak} day streak` : 'Start a streak'}</b>
+              <span>
+                {summary.streak > 1
+                  ? 'You’re finding your rhythm'
+                  : summary.streak === 1
+                    ? 'A good start. Come back tomorrow'
+                    : 'Finish a session to begin'}
+              </span>
             </div>
             <ChevronRight size={15} />
-          </div>
+          </button>
           <button className="profile" onClick={() => setProfileOpen(true)} aria-label="Edit profile">
             <div className="avatar">{profile.name.trim().charAt(0).toUpperCase()}</div>
             <div className="profile-name">
@@ -341,7 +373,13 @@ function App() {
       </aside>
       <main className="main">
         <header className="topbar">
-          <button className="mobile-menu icon-button" onClick={() => setMobileNav(!mobileNav)}>
+          <button
+            className="mobile-menu icon-button"
+            onClick={() => setMobileNav(!mobileNav)}
+            aria-label={mobileNav ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileNav}
+            aria-controls="daymark-navigation"
+          >
             <Menu size={19} />
           </button>
           <div className="breadcrumbs">
@@ -354,7 +392,11 @@ function App() {
               <CalendarDays size={15} /> {today.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })}{' '}
               <ChevronDown size={14} />
             </button>
-            <button className="help-button" onClick={() => notify('Your study plan is saved on this device.')}>
+            <button
+              className="help-button"
+              onClick={() => notify('Your study plan is saved on this device.')}
+              aria-label="Where is my plan saved?"
+            >
               <CircleHelp size={17} />
             </button>
             <button className="top-avatar" onClick={() => setProfileOpen(true)} aria-label="Edit profile">
@@ -405,11 +447,11 @@ function App() {
               onStart={start}
             />
           ) : page === 'Progress' ? (
-            <ProgressPage mins={mins} records={records} subjects={activeSubjects} />
+            <ProgressPage summary={summary} records={records} subjects={activeSubjects} onNavigate={setPage} />
           ) : page === 'Revision' ? (
             <RevisionPage records={records} subjects={activeSubjects} onStart={start} />
           ) : (
-            <InsightsPage onReplan={replan} records={records} />
+            <InsightsPage onReplan={replan} records={records} onNavigate={setPage} />
           )}
         </div>
       </main>
@@ -433,9 +475,11 @@ function App() {
             const oldName = subjectEditor.subject!.name;
             const result = renameSubjectReferences(activeSubjects, sessions, records, appState.planChanges, oldName, name);
             if ('error' in result) return result.error;
-            setAppState((prev) => ({ ...prev, ...result }));
-            setLastExplanation((value) => value.split(oldName).join(name.trim()));
-            notify('Subject name updated everywhere');
+            const updated = updateSubjectDetails(result.subjects, name.trim(), description, examDate);
+            if ('error' in updated) return updated.error;
+            setAppState((prev) => ({ ...prev, ...result, subjects: updated }));
+            if (oldName !== name.trim()) setLastExplanation((value) => value.split(oldName).join(name.trim()));
+            notify(oldName === name.trim() ? 'Subject details saved' : 'Subject name updated everywhere');
             return null;
           }}
         />
@@ -469,68 +513,76 @@ function App() {
         />
       )}
       {pending && (
-        <div className="modal-backdrop">
-          <div className="change-modal">
-            <button className="modal-close" onClick={() => setPending(null)}>
+        <Dialog onClose={() => setPending(null)}>
+          <div className="change-modal" role="dialog" aria-modal="true" aria-labelledby="change-heading">
+            <button className="modal-close" onClick={() => setPending(null)} aria-label="Close without changing the plan">
               <X size={18} />
             </button>
-            <div className="eyebrow">PLAN ADJUSTED</div>
-            <h2>Here’s what I’d change.</h2>
+            <div className="eyebrow">{pending.changed === false ? 'QUICK CHANGE' : 'PLAN ADJUSTED'}</div>
+            <h2 id="change-heading">{pending.changed === false ? 'Nothing to change yet.' : 'Here’s what I’d change.'}</h2>
             <p>{pending.explanation}</p>
-            {pending.removed.length > 0 && (
-              <div>
-                <b>Removed</b>
-                {pending.removed.map((x) => (
-                  <span key={x}>{x}</span>
-                ))}
-              </div>
+            {(
+              [
+                ['Added', pending.added],
+                ['Removed', pending.removed],
+                ['Adjusted', pending.adjusted],
+              ] as const
+            ).map(
+              ([label, items]) =>
+                items.length > 0 && (
+                  <div key={label}>
+                    <b>{label}</b>
+                    {items.map((x, i) => (
+                      <span key={`${x}-${i}`}>{x}</span>
+                    ))}
+                  </div>
+                ),
             )}
-            {pending.adjusted.length > 0 && (
-              <div>
-                <b>Adjusted</b>
-                {pending.adjusted.map((x) => (
-                  <span key={x}>{x}</span>
-                ))}
-              </div>
-            )}
-            <div className="proposed-sessions">
-              <b>Today · {pending.sessions.reduce((n, s) => n + s.minutes, 0)} min</b>
-              {pending.sessions.map((s) => (
-                <span key={s.id}>
-                  {s.topic} · {s.minutes} min <small>{s.time}</small>
-                </span>
-              ))}
-            </div>
+            {pending.changed !== false && <ProposedDay sessions={pending.sessions.filter((s) => (s.date || todayKey) === todayKey)} />}
             <div className="proposal-actions">
-              <button
-                className="button primary"
-                onClick={() => {
-                  setSessions(pending.sessions);
-                  setLastExplanation(pending.explanation);
-                  setAppState((prev) => ({ ...prev, planChanges: [...prev.planChanges, pending] }));
-                  setReplanned(true);
-                  setPending(null);
-                  setPage('Plan');
-                  setCommand('');
-                  notify('Plan changes accepted');
-                }}
-              >
-                Accept changes
-              </button>
-              <button className="button outline" onClick={() => setPending(null)}>
-                Keep current plan
-              </button>
+              {pending.changed === false ? (
+                <button className="button primary" onClick={() => setPending(null)}>
+                  Got it
+                </button>
+              ) : (
+                <>
+                  <button className="button primary" onClick={() => acceptPending(pending)}>
+                    Accept changes
+                  </button>
+                  <button className="button outline" onClick={() => setPending(null)}>
+                    Keep current plan
+                  </button>
+                </>
+              )}
             </div>
           </div>
-        </div>
+        </Dialog>
       )}
       {toast && (
-        <div className="toast">
+        <div className="toast" role="status">
           <span className="toast-check">
             <Check size={14} />
           </span>
           {toast}
         </div>
+      )}
+    </div>
+  );
+}
+
+function ProposedDay({ sessions }: { sessions: Session[] }) {
+  const ordered = sortByTime(sessions);
+  return (
+    <div className="proposed-sessions">
+      <b>Today · {ordered.filter((s) => s.status !== 'done').reduce((n, s) => n + s.minutes, 0)} min still to study</b>
+      {ordered.length ? (
+        ordered.map((s) => (
+          <span key={s.id} className={s.status === 'done' ? 'is-done' : ''}>
+            {s.topic} · {s.minutes} min{s.status === 'done' ? ' · done' : ''} <small>{s.time}</small>
+          </span>
+        ))
+      ) : (
+        <span>No sessions left today.</span>
       )}
     </div>
   );
@@ -549,19 +601,22 @@ function ProfileModal({
   const [course, setCourse] = useState(profile.course);
   const [year, setYear] = useState(profile.year);
   return (
-    <div className="modal-backdrop">
+    <Dialog onClose={onClose}>
       <form
         className="confidence-modal profile-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="profile-heading"
         onSubmit={(e) => {
           e.preventDefault();
           onSave({ name: name.trim(), course: course.trim(), year: year.trim() });
         }}
       >
-        <button type="button" className="modal-close" onClick={onClose}>
+        <button type="button" className="modal-close" onClick={onClose} aria-label="Close profile">
           <X size={18} />
         </button>
         <div className="eyebrow">YOUR PROFILE</div>
-        <h2>A little about you.</h2>
+        <h2 id="profile-heading">A little about you.</h2>
         <label>
           Name
           <input required maxLength={60} value={name} onChange={(e) => setName(e.target.value)} />
@@ -578,7 +633,7 @@ function ProfileModal({
           Save profile
         </button>
       </form>
-    </div>
+    </Dialog>
   );
 }
 
@@ -607,17 +662,23 @@ function SubjectEditorModal({
     onClose();
   };
   return (
-    <div className="modal-backdrop">
-      <form className="confidence-modal profile-modal subject-editor" onSubmit={submit}>
+    <Dialog onClose={onClose}>
+      <form
+        className="confidence-modal profile-modal subject-editor"
+        onSubmit={submit}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="subject-editor-heading"
+      >
         <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
           <X size={18} />
         </button>
         <div className="eyebrow">{mode === 'add' ? 'YOUR STUDY SPACE' : 'SUBJECT DETAILS'}</div>
-        <h2>{mode === 'add' ? 'Add a subject.' : 'Rename subject.'}</h2>
+        <h2 id="subject-editor-heading">{mode === 'add' ? 'Add a subject.' : 'Edit subject.'}</h2>
         <p>
           {mode === 'add'
             ? 'A subject gives Daymark a place to organise sessions, progress and revision.'
-            : 'The new name will be used across your plan and study history.'}
+            : 'A new name will be used across your plan and study history.'}
         </p>
         <label>
           Subject name
@@ -633,23 +694,26 @@ function SubjectEditorModal({
             placeholder="e.g. Biology"
           />
         </label>
-        {mode === 'add' && (
-          <>
-            <label>
-              Description or study focus <span className="optional-label">Optional</span>
-              <input
-                maxLength={120}
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                placeholder="e.g. Cell structure and genetics"
-              />
-            </label>
-            <label>
-              Exam date <span className="optional-label">Optional</span>
-              <input type="date" value={examDate} onChange={(event) => setExamDate(event.target.value)} />
-            </label>
-          </>
-        )}
+        <label>
+          Description or study focus <span className="optional-label">Optional</span>
+          <input
+            maxLength={120}
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="e.g. Cell structure and genetics"
+          />
+        </label>
+        <label>
+          Exam date <span className="optional-label">Optional</span>
+          <input
+            type="date"
+            value={examDate}
+            onChange={(event) => {
+              setExamDate(event.target.value);
+              setError('');
+            }}
+          />
+        </label>
         {error && (
           <p className="form-error" role="alert">
             {error}
@@ -657,19 +721,19 @@ function SubjectEditorModal({
         )}
         <div className="proposal-actions">
           <button className="button primary" type="submit" disabled={!name.trim()}>
-            {mode === 'add' ? 'Add subject' : 'Save name'}
+            {mode === 'add' ? 'Add subject' : 'Save changes'}
           </button>
           <button className="button outline" type="button" onClick={onClose}>
             Cancel
           </button>
         </div>
       </form>
-    </div>
+    </Dialog>
   );
 }
 function RemoveSubjectModal({ subject, onCancel, onConfirm }: { subject: Subject; onCancel: () => void; onConfirm: () => void }) {
   return (
-    <div className="modal-backdrop">
+    <Dialog onClose={onCancel}>
       <section className="confidence-modal remove-modal" role="alertdialog" aria-modal="true" aria-labelledby="remove-heading">
         <button className="modal-close" onClick={onCancel} aria-label="Cancel removal">
           <X size={18} />
@@ -681,12 +745,12 @@ function RemoveSubjectModal({ subject, onCancel, onConfirm }: { subject: Subject
           <button className="button destructive" onClick={onConfirm}>
             Remove subject
           </button>
-          <button className="button outline" onClick={onCancel}>
+          <button className="button outline" onClick={onCancel} autoFocus>
             Keep subject
           </button>
         </div>
       </section>
-    </div>
+    </Dialog>
   );
 }
 
@@ -723,13 +787,14 @@ function HomePage({
   onNavigate: (p: Page) => void;
   onMissed: (s: Session) => void;
 }) {
-  const todaySessions = sessions.filter((s) => (s.date || todayKey) === todayKey);
-  const active = todaySessions.find((s) => s.status === 'now') || todaySessions.find((s) => s.status !== 'done') || todaySessions[0];
+  const todaySessions = sortByTime(sessions.filter((s) => (s.date || todayKey) === todayKey));
+  const active = todaySessions.find((s) => s.status === 'now') || todaySessions.find((s) => s.status !== 'done');
   const completeCount = todaySessions.filter((s) => s.status === 'done').length;
-  const revisit = records
-    .filter((r) => r.confidence && r.confidence <= 3 && activeSubjects.some((s) => s.name === r.subject))
-    .slice(-3)
-    .reverse();
+  const plannedMinutes = todaySessions.reduce((sum, s) => sum + s.minutes, 0);
+  const { weeklyMinutes, weeklyCompleted } = progressAgent.summary(records, today);
+  const revisit = topicsToRevisit(records, 3)
+    .filter((r) => activeSubjects.some((s) => s.name === r.subject))
+    .slice(0, 3);
   return (
     <>
       <div className="greeting-row">
@@ -753,7 +818,7 @@ function HomePage({
             <div className="eyebrow">
               YOUR NEXT SESSION <span className="live-dot" />
             </div>
-            <button className="feature-more" onClick={() => onNavigate('Plan')}>
+            <button className="feature-more" onClick={() => onNavigate('Plan')} aria-label="Open study plan">
               <MoreHorizontal size={19} />
             </button>
           </div>
@@ -771,7 +836,7 @@ function HomePage({
               <p className="feature-description">{active.objective}</p>
               <div className="focus-progress">
                 <div className="progress-track">
-                  <span style={{ width: `${Math.min(100, completeCount * 33)}%` }} />
+                  <span style={{ width: `${todaySessions.length ? (completeCount / todaySessions.length) * 100 : 0}%` }} />
                 </div>
                 <span>
                   {completeCount}/{todaySessions.length} sessions today
@@ -787,12 +852,27 @@ function HomePage({
               </div>
               <div className="corner-mark">✳</div>
             </>
+          ) : todaySessions.length ? (
+            <div className="empty-panel">
+              <h2>Today’s sessions are done.</h2>
+              <p>
+                You finished {completeCount} {completeCount === 1 ? 'session' : 'sessions'} today. A short review on the Revision page will
+                help it stick.
+              </p>
+              <button className="button primary" onClick={() => onNavigate('Revision')}>
+                <RotateCcw size={15} /> Open revision
+              </button>
+            </div>
           ) : (
             <div className="empty-panel">
               <h2>A little space to begin.</h2>
-              <p>Add a subject and Daymark will help make a first study plan.</p>
+              <p>
+                {activeSubjects.length
+                  ? 'Nothing is planned for today yet. Ask for a quick change, such as “focus on Mathematics”, to add a session.'
+                  : 'Add a subject and Daymark will help make a first study plan.'}
+              </p>
               <button className="button primary" onClick={() => onNavigate('Subjects')}>
-                <Plus size={15} /> Add a subject
+                <Plus size={15} /> {activeSubjects.length ? 'Manage subjects' : 'Add a subject'}
               </button>
             </div>
           )}
@@ -809,8 +889,8 @@ function HomePage({
           </div>
           <div className="availability">
             <div className="availability-num">
-              {Math.floor(todaySessions.reduce((sum, s) => sum + s.minutes, 0) / 60)}
-              <span>h</span> {todaySessions.reduce((sum, s) => sum + s.minutes, 0) % 60}
+              {Math.floor(plannedMinutes / 60)}
+              <span>h</span> {plannedMinutes % 60}
               <span>m</span>
             </div>
             <span>planned today</span>
@@ -826,7 +906,14 @@ function HomePage({
               <small>subjects</small>
             </div>
             <div>
-              <span>{activeSubjects.filter((s) => s.examDate && daysUntilDate(s.examDate, today) <= 7).length}</span>
+              <span>
+                {
+                  activeSubjects.filter((s) => {
+                    const days = s.examDate ? daysUntilDate(s.examDate, today) : -1;
+                    return days >= 0 && days <= 7;
+                  }).length
+                }
+              </span>
               <small>exams soon</small>
             </div>
           </div>
@@ -856,7 +943,7 @@ function HomePage({
                     <span className={`timeline-node ${s.status === 'now' ? 'node-now' : ''}`} />
                   </div>
                   <div className="timeline-content">
-                    <button className="timeline-main" onClick={() => s.status !== 'done' && onStart(s)}>
+                    <button className="timeline-main" onClick={() => onStart(s)} disabled={s.status === 'done'}>
                       <div className="timeline-title">
                         <b>{s.topic}</b>
                         {s.status === 'now' && <span className="now-tag">UP NEXT</span>}
@@ -900,7 +987,7 @@ function HomePage({
                 <div className="eyebrow">YOUR RHYTHM</div>
                 <h3>This week</h3>
               </div>
-              <button className="dots-button" onClick={() => onNavigate('Progress')}>
+              <button className="dots-button" onClick={() => onNavigate('Progress')} aria-label="Open progress">
                 <MoreHorizontal size={19} />
               </button>
             </div>
@@ -926,27 +1013,25 @@ function HomePage({
             <div className="week-bottom">
               <div>
                 <span className="week-hours">
-                  {Math.floor(records.reduce((sum, r) => sum + (r.completed ? r.actualMinutes : 0), 0) / 60)}h{' '}
-                  {records.reduce((sum, r) => sum + (r.completed ? r.actualMinutes : 0), 0) % 60}m
+                  {Math.floor(weeklyMinutes / 60)}h {weeklyMinutes % 60}m
                 </span>
-                <span className="week-caption">focused in logged sessions</span>
+                <span className="week-caption">focused in logged sessions this week</span>
               </div>
-              <span className="trend-pill">
-                <ArrowUpRight size={13} /> {records.filter((r) => r.completed).length}
+              <span className="trend-pill" title="Sessions completed this week">
+                <ArrowUpRight size={13} /> {weeklyCompleted}
               </span>
             </div>
             <div className="weekly-bar">
               <i
                 style={{
-                  width: `${Math.min(100, (records.reduce((sum, r) => sum + (r.completed ? r.actualMinutes : 0), 0) / 540) * 100)}%`,
+                  width: `${Math.min(100, (weeklyMinutes / WEEKLY_GOAL_MINUTES) * 100)}%`,
                 }}
               />
             </div>
             <div className="week-target">
               <span>Weekly goal</span>
               <span>
-                9h <b>·</b>{' '}
-                {Math.min(100, Math.round((records.reduce((sum, r) => sum + (r.completed ? r.actualMinutes : 0), 0) / 540) * 100))}%
+                9h <b>·</b> {Math.min(100, Math.round((weeklyMinutes / WEEKLY_GOAL_MINUTES) * 100))}%
               </span>
             </div>
           </div>
@@ -962,7 +1047,7 @@ function HomePage({
             </div>
             {revisit.length
               ? revisit.map((record, i) => (
-                  <button className="focus-topic" key={`${record.sessionId}-${record.at}`} onClick={() => onNavigate('Revision')}>
+                  <button className="focus-topic" key={`${record.subject}-${record.topic}`} onClick={() => onNavigate('Revision')}>
                     <span className={`topic-symbol ${i === 0 ? 'warm' : 'lilac'}`}>↺</span>
                     <span>
                       <b>{record.topic}</b>
@@ -995,8 +1080,14 @@ function HomePage({
             <small>It’ll reshuffle the day around you.</small>
           </div>
           <form onSubmit={submit}>
-            <input value={command} onChange={(e) => setCommand(e.target.value)} placeholder="e.g. I only have 90 minutes today…" />
-            <button type="submit" aria-label="Update plan">
+            <input
+              value={command}
+              onChange={(e) => setCommand(e.target.value)}
+              placeholder="e.g. I only have 90 minutes today…"
+              aria-label="Tell your planner what’s different today"
+              maxLength={200}
+            />
+            <button type="submit" aria-label="Update plan" disabled={!command.trim()}>
               <ArrowRight size={17} />
             </button>
           </form>
@@ -1022,6 +1113,12 @@ function HomePage({
   );
 }
 
+const CALENDAR_TOP = 38;
+const HOUR_HEIGHT = 40;
+function timeToMinutes(time: string): number {
+  const [hour, minute] = time.split(':').map(Number);
+  return hour * 60 + minute;
+}
 function daysUntilDate(value: string, today: Date): number {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return 365;
   const [year, month, day] = value.split('-').map(Number);
@@ -1067,13 +1164,19 @@ function PlanPage({
   records: StudyRecord[];
   onNavigate: (p: Page) => void;
 }) {
-  const [view, setView] = useState('Week');
-  const todaySessions = sessions.filter((s) => (s.date || todayKey) === todayKey);
-  const weekStart = week[0].dateKey;
-  const weekEnd = week[6].dateKey;
+  const [weekOffset, setWeekOffset] = useState(0);
+  const shownWeek = weekOffset ? weekForDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() + weekOffset * 7)) : week;
+  const todaySessions = sortByTime(sessions.filter((s) => (s.date || todayKey) === todayKey));
+  const weekStart = shownWeek[0].dateKey;
+  const weekEnd = shownWeek[6].dateKey;
   const visibleSessions = sessions.filter((s) => (s.date || todayKey) >= weekStart && (s.date || todayKey) <= weekEnd);
+  // Show 08:00–18:00 by default and stretch to fit sessions planned earlier or later.
+  const startHour = Math.min(8, ...visibleSessions.map((s) => Math.floor(timeToMinutes(s.time) / 60)));
+  const endHour = Math.min(24, Math.max(18, ...visibleSessions.map((s) => Math.ceil((timeToMinutes(s.time) + s.minutes) / 60))));
+  const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => `${String(startHour + i).padStart(2, '0')}:00`);
+  const legend = subjects.filter((subject) => visibleSessions.some((s) => s.subject === subject.name));
   const examSubjects = subjects
-    .filter((s) => s.examDate)
+    .filter((s) => s.examDate && daysUntilDate(s.examDate, today) >= 0)
     .sort((a, b) => daysUntilDate(a.examDate!, today) - daysUntilDate(b.examDate!, today))
     .slice(0, 3);
   return (
@@ -1089,22 +1192,17 @@ function PlanPage({
         </button>
       </div>
       <div className="planner-toolbar">
-        <div className="view-toggle">
-          {['Day', 'Week', 'Month'].map((v) => (
-            <button className={view === v ? 'selected' : ''} onClick={() => setView(v)} key={v}>
-              {v}
-            </button>
-          ))}
-        </div>
         <div className="week-navigation">
-          <button onClick={() => onNavigate('Plan')} aria-label="Previous week">
+          <button onClick={() => setWeekOffset((offset) => offset - 1)} aria-label="Previous week">
             <ChevronLeft size={16} />
           </button>
-          <b>{weekRange(week)}</b>
-          <button onClick={() => onNavigate('Plan')} aria-label="Next week">
+          <b aria-live="polite">{weekRange(shownWeek)}</b>
+          <button onClick={() => setWeekOffset((offset) => offset + 1)} aria-label="Next week">
             <ChevronRight size={16} />
           </button>
-          <button className="today-pill">Today</button>
+          <button className="today-pill" onClick={() => setWeekOffset(0)} disabled={weekOffset === 0}>
+            Today
+          </button>
         </div>
         <button className="button outline add-button" onClick={() => onNavigate('Subjects')}>
           <Plus size={15} /> Manage subjects
@@ -1117,7 +1215,7 @@ function PlanPage({
           </span>
           <div>
             <b>A small shift, with a reason.</b>
-            <span>{sessions.find((s) => s.reason)?.reason || explanation || 'Your plan reflects the changes you accepted.'}</span>
+            <span>{explanation || sessions.find((s) => s.reason)?.reason || 'Your plan reflects the changes you accepted.'}</span>
           </div>
         </div>
       )}
@@ -1125,37 +1223,39 @@ function PlanPage({
         <div className="week-calendar">
           <div className="calendar-head">
             <div className="time-spacer" />
-            {week.map((d) => (
+            {shownWeek.map((d) => (
               <div className={`calendar-day ${d.dateKey === todayKey ? 'today' : ''}`} key={d.dateKey}>
                 <span>{d.day}</span>
                 <b>{d.date}</b>
               </div>
             ))}
           </div>
-          <div className="calendar-body">
+          <div className="calendar-body" style={{ height: `${CALENDAR_TOP + (endHour - startHour) * HOUR_HEIGHT + 32}px` }}>
             <div className="time-labels">
-              {['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'].map((t) => (
+              {hours.map((t) => (
                 <span key={t}>{t}</span>
               ))}
             </div>
-            {week.map((d) => (
+            {shownWeek.map((d) => (
               <div className={`calendar-column ${d.dateKey === todayKey ? 'today' : ''}`} key={d.dateKey}>
                 {visibleSessions
                   .filter((s) => (s.date || todayKey) === d.dateKey)
                   .map((s) => {
-                    const [hour, minute] = s.time.split(':').map(Number);
-                    const offset = Math.max(0, (hour - 8) * 60 + minute);
+                    const offset = Math.max(0, timeToMinutes(s.time) - startHour * 60);
+                    const done = s.status === 'done';
                     return (
                       <button
-                        className="calendar-session"
-                        style={{ top: `${38 + (offset / 60) * 40}px`, background: s.tint, borderColor: s.tint }}
+                        className={`calendar-session ${done ? 'is-done' : ''}`}
+                        style={{ top: `${CALENDAR_TOP + (offset / 60) * HOUR_HEIGHT}px`, background: s.tint, borderColor: s.tint }}
                         key={s.id}
                         onClick={() => onStart(s)}
+                        disabled={done}
+                        aria-label={`${s.subject}: ${s.topic}, ${s.time}, ${s.minutes} minutes${done ? ', done' : ''}`}
                       >
                         <b>{s.subject}</b>
                         <span>{s.topic}</span>
                         <small>
-                          {s.time} · {s.minutes} min
+                          {s.time} · {s.minutes} min{done ? ' · done' : ''}
                         </small>
                       </button>
                     );
@@ -1164,16 +1264,12 @@ function PlanPage({
             ))}
           </div>
           <div className="calendar-foot">
-            <span>
-              <i className="legend-dot ai-dot" /> AI
-            </span>
-            <span>
-              <i className="legend-dot math-dot" /> Mathematics
-            </span>
-            <span>
-              <i className="legend-dot db-dot" /> DBMS
-            </span>
-            <span>Click a session to focus</span>
+            {legend.map((subject) => (
+              <span key={subject.name}>
+                <i className="legend-dot" style={{ background: subject.color }} /> {subject.short || subject.name}
+              </span>
+            ))}
+            <span>{visibleSessions.length ? 'Click a session to focus' : 'No sessions planned this week'}</span>
           </div>
         </div>
         <aside className="plan-aside">
@@ -1213,11 +1309,11 @@ function PlanPage({
             </span>
             <div>
               <b>Keep the week in balance</b>
-              <p>Two heavier sessions are followed by lighter review days. That’s by design.</p>
+              <p>Replanning only reshapes what’s left of today. Finished sessions and other days stay as they are.</p>
             </div>
           </div>
           <button className="button outline full" onClick={onReplan}>
-            <RotateCcw size={15} /> Rebalance this week
+            <RotateCcw size={15} /> Rebalance today
           </button>
         </aside>
       </div>
@@ -1233,7 +1329,12 @@ function PlanPage({
         </div>
         {todaySessions.length ? (
           todaySessions.map((s) => (
-            <button className="agenda-row" key={s.id} onClick={() => onStart(s)}>
+            <button
+              className={`agenda-row ${s.status === 'done' ? 'is-done' : ''}`}
+              key={s.id}
+              onClick={() => onStart(s)}
+              disabled={s.status === 'done'}
+            >
               <span className="agenda-time">{s.time}</span>
               <span className="agenda-stripe" style={{ background: s.tint }} />
               <span className="agenda-copy">
@@ -1243,13 +1344,17 @@ function PlanPage({
                   {s.objective.length > 70 ? '…' : ''}
                 </small>
               </span>
-              <span className="priority-tag">{s.priority} priority</span>
+              <span className="priority-tag">{s.status === 'done' ? 'Done' : `${s.priority} priority`}</span>
               <span className="agenda-duration">{s.minutes} min</span>
               <ChevronRight size={16} />
             </button>
           ))
         ) : (
-          <p className="empty-copy">Your day is clear. Add a subject to plan your next session.</p>
+          <p className="empty-copy">
+            {subjects.length
+              ? 'Your day is clear. Use Quick change on Home, for example “focus on a subject”, to plan a session.'
+              : 'Your day is clear. Add a subject to plan your next session.'}
+          </p>
         )}
       </div>
     </>
@@ -1286,8 +1391,7 @@ function SubjectsPage({
         <>
           <div className="subject-grid">
             {subjects.map((s) => {
-              const subjectRecords = records.filter((r) => r.subject === s.name);
-              const latest = subjectRecords[subjectRecords.length - 1];
+              const latest = [...records].reverse().find((r) => r.subject === s.name && r.confidence !== undefined);
               return (
                 <article className="subject-card" key={s.name}>
                   <div className="subject-card-top">
@@ -1295,7 +1399,7 @@ function SubjectsPage({
                       {s.short}
                     </span>
                     <div className="subject-actions">
-                      <button className="dots-button" onClick={() => onRename(s)} aria-label={`Rename ${s.name}`} title="Rename subject">
+                      <button className="dots-button" onClick={() => onRename(s)} aria-label={`Edit ${s.name}`} title="Edit subject">
                         <MoreHorizontal size={18} />
                       </button>
                       <button className="subject-remove" onClick={() => onRemove(s)} aria-label={`Remove ${s.name}`} title="Remove subject">
@@ -1333,7 +1437,7 @@ function SubjectsPage({
                   </div>
                   <div className="subject-card-foot">
                     <span>
-                      <RotateCcw size={14} /> {latest ? `Last check-in · ${latest.confidence || '—'}/5` : 'Ready to begin'}
+                      <RotateCcw size={14} /> {latest ? `Last check-in · ${latest.confidence}/5` : 'Ready to begin'}
                     </span>
                     <b>{examCountdown(s, new Date())}</b>
                   </div>
@@ -1344,8 +1448,8 @@ function SubjectsPage({
           <div className="subject-bottom-note">
             <span className="note-star">✳</span>
             <p>
-              <b>Mastery is a moving picture.</b> It combines recent quiz results, your confidence, and time spent—not just what you’ve
-              finished.
+              <b>Mastery is a moving picture.</b> Each confidence check-in nudges it up or down, so it reflects how sessions actually felt,
+              not just what you’ve finished.
             </p>
           </div>
         </>
@@ -1365,7 +1469,20 @@ function SubjectsPage({
   );
 }
 
-function ProgressPage({ mins, records, subjects }: { mins: number; records: StudyRecord[]; subjects: Subject[] }) {
+function ProgressPage({
+  summary,
+  records,
+  subjects,
+  onNavigate,
+}: {
+  summary: ReturnType<typeof progressAgent.summary>;
+  records: StudyRecord[];
+  subjects: Subject[];
+  onNavigate: (p: Page) => void;
+}) {
+  const mins = summary.weeklyMinutes;
+  const goal = Math.min(100, Math.round((mins / WEEKLY_GOAL_MINUTES) * 100));
+  const todayKey = localDateKey(new Date());
   return (
     <>
       <div className="page-title-row">
@@ -1374,9 +1491,9 @@ function ProgressPage({ mins, records, subjects }: { mins: number; records: Stud
           <h1>Your progress.</h1>
           <p className="subhead">A little perspective on the work you’ve put in.</p>
         </div>
-        <button className="today-button">
-          <CalendarDays size={15} /> This week <ChevronDown size={14} />
-        </button>
+        <span className="today-button">
+          <CalendarDays size={15} /> This week
+        </span>
       </div>
       <div className="progress-metrics">
         <div className="metric">
@@ -1386,29 +1503,38 @@ function ProgressPage({ mins, records, subjects }: { mins: number; records: Stud
             <span>h</span> {mins % 60}
             <span>m</span>
           </b>
-          <small>{records.length ? `${records.filter((r) => r.completed).length} logged sessions` : `${mins} minutes recorded`}</small>
+          <small>
+            {summary.weeklyCompleted} logged {summary.weeklyCompleted === 1 ? 'session' : 'sessions'} this week
+          </small>
         </div>
         <div className="metric">
           <span>SESSIONS COMPLETE</span>
-          <b>{records.filter((r) => r.completed).length}</b>
+          <b>{summary.completed}</b>
           <small>Completed and checked in</small>
         </div>
         <div className="metric">
           <span>STUDY STREAK</span>
           <b>
-            {new Set(records.filter((r) => r.completed).map((r) => r.at.slice(0, 10))).size}
-            <span> days</span>
+            {summary.streak}
+            <span> {summary.streak === 1 ? 'day' : 'days'}</span>
           </b>
           <small>Built one study day at a time</small>
         </div>
         <div className="metric">
           <span>WEEKLY GOAL</span>
           <b>
-            {Math.min(100, Math.round((mins / 540) * 100))}
+            {goal}
             <span>%</span>
           </b>
-          <div className="metric-track">
-            <i style={{ width: `${Math.min(100, (mins / 540) * 100)}%` }} />
+          <div
+            className="metric-track"
+            role="progressbar"
+            aria-label="Weekly goal"
+            aria-valuenow={goal}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <i style={{ width: `${goal}%` }} />
           </div>
         </div>
       </div>
@@ -1423,28 +1549,27 @@ function ProgressPage({ mins, records, subjects }: { mins: number; records: Stud
               <i /> This week
             </span>
           </div>
-          <div className="bar-chart">
-            {[
-              { d: 'M', h: 1.3 },
-              { d: 'T', h: 2.1 },
-              { d: 'W', h: 1.7 },
-              { d: 'T', h: 2.4 },
-              { d: 'F', h: 1.2 },
-              { d: 'S', h: 2.8 },
-              { d: 'S', h: 0.2 },
-            ].map((x, i) => (
-              <div className="bar-group" key={i}>
-                <span className="bar-value">{x.h ? `${x.h}h` : ''}</span>
-                <i style={{ height: `${x.h * 28}px` }} />
-                <small>{x.d}</small>
-              </div>
-            ))}
+          <div
+            className="bar-chart"
+            role="img"
+            aria-label={`Study time this week: ${summary.week.map((d) => `${d.day} ${d.minutes} minutes`).join(', ')}`}
+          >
+            {summary.week.map((d) => {
+              const hours = Math.round((d.minutes / 60) * 10) / 10;
+              return (
+                <div className="bar-group" key={d.dateKey}>
+                  <span className="bar-value">{d.minutes ? (d.minutes < 60 ? `${d.minutes}m` : `${hours}h`) : ''}</span>
+                  <i style={{ height: `${Math.min(100, (d.minutes / 60) * 28)}px` }} />
+                  <small>{d.day.charAt(0)}</small>
+                </div>
+              );
+            })}
           </div>
           <div className="chart-foot">
             <span>
               {Math.floor(mins / 60)}h {mins % 60}m logged this week
             </span>
-            <span>Goal · 9 hours</span>
+            <span>Goal · {WEEKLY_GOAL_MINUTES / 60} hours</span>
           </div>
         </section>
         <section className="panel mastery-panel">
@@ -1453,20 +1578,24 @@ function ProgressPage({ mins, records, subjects }: { mins: number; records: Stud
               <div className="eyebrow">BY SUBJECT</div>
               <h3>Where you stand</h3>
             </div>
-            <button className="text-button">
+            <button className="text-button" onClick={() => onNavigate('Subjects')}>
               Details <ArrowRight size={14} />
             </button>
           </div>
-          {subjects.map((s) => (
-            <div className="mastery-line" key={s.name}>
-              <span className="mastery-swatch" style={{ background: s.color }} />
-              <span className="mastery-name">{s.name}</span>
-              <div className="mastery-track">
-                <i style={{ width: `${s.mastery}%`, background: s.color }} />
+          {subjects.length ? (
+            subjects.map((s) => (
+              <div className="mastery-line" key={s.name}>
+                <span className="mastery-swatch" style={{ background: s.color }} />
+                <span className="mastery-name">{s.name}</span>
+                <div className="mastery-track">
+                  <i style={{ width: `${s.mastery}%`, background: s.color }} />
+                </div>
+                <b>{s.mastery}%</b>
               </div>
-              <b>{s.mastery}%</b>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="empty-copy">Add a subject to see where you stand.</p>
+          )}
         </section>
         <section className="panel consistency-panel">
           <div className="section-head">
@@ -1476,13 +1605,16 @@ function ProgressPage({ mins, records, subjects }: { mins: number; records: Stud
             </div>
           </div>
           <div className="consistency-big">
-            {new Set(records.filter((r) => r.completed).map((r) => r.at.slice(0, 10))).size} <span>study days logged</span>
+            {summary.consistency} <span>study {summary.consistency === 1 ? 'day' : 'days'} logged</span>
           </div>
           <div className="consistency-dots">
-            {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
-              <div key={i}>
-                <span className={i !== 6 ? 'filled' : ''}>{i !== 6 && <Check size={13} />}</span>
-                <small>{d}</small>
+            {summary.week.map((d) => (
+              <div
+                key={d.dateKey}
+                title={`${d.day}: ${d.completed ? `${d.completed} ${d.completed === 1 ? 'session' : 'sessions'}, ${d.minutes} min` : d.dateKey > todayKey ? 'still to come' : 'no sessions'}`}
+              >
+                <span className={d.completed ? 'filled' : ''}>{d.completed > 0 && <Check size={13} />}</span>
+                <small>{d.day.charAt(0)}</small>
               </div>
             ))}
           </div>
@@ -1501,7 +1633,7 @@ function ProgressPage({ mins, records, subjects }: { mins: number; records: Stud
             <h3>{evaluationAgent.insight(records)}</h3>
             <p>Based on saved sessions and check-ins.</p>
           </div>
-          <button className="text-button">
+          <button className="text-button" onClick={() => onNavigate('Insights')}>
             Explore <ArrowRight size={14} />
           </button>
         </section>
@@ -1511,24 +1643,20 @@ function ProgressPage({ mins, records, subjects }: { mins: number; records: Stud
 }
 
 function RevisionPage({ records, subjects, onStart }: { records: StudyRecord[]; subjects: Subject[]; onStart: (s: Session) => void }) {
-  const recordedTopics = generateRevisionPlan(records);
-  const candidates = recordedTopics
-    .map((topic) => {
-      const record = [...records]
-        .reverse()
-        .find((entry) => entry.topic === topic && subjects.some((subject) => subject.name === entry.subject));
-      return record ? { topic, subject: record.subject, confidence: record.confidence || 1 } : null;
-    })
-    .filter((item): item is { topic: string; subject: string; confidence: number } => !!item);
+  const candidates = topicsToRevisit(records, 2)
+    .filter((record) => subjects.some((subject) => subject.name === record.subject))
+    .map((record) => ({ topic: record.topic, subject: record.subject, confidence: record.confidence!, estimated: false }));
   const items = candidates.length
     ? candidates
     : subjects.map((subject) => ({
         topic: subject.needsWork,
         subject: subject.name,
         confidence: Math.max(1, Math.round((100 - subject.mastery) / 20)),
+        estimated: true,
       }));
-  const sessions = items.map((item) => ({
-    id: Math.max(0, ...records.map((record) => record.sessionId)) + 100 + items.indexOf(item),
+  // Negative ids keep review sessions from ever colliding with a session in the plan.
+  const sessions: Session[] = items.map((item, i) => ({
+    id: -(i + 1),
     time: '14:00',
     date: localDateKey(new Date()),
     subject: item.subject,
@@ -1536,9 +1664,9 @@ function RevisionPage({ records, subjects, onStart }: { records: StudyRecord[]; 
     minutes: 20,
     status: 'now' as const,
     priority: item.confidence <= 2 ? ('High' as const) : ('Medium' as const),
-    tint: subjects.find((subject) => subject.name === item.subject)?.color || '#e8f2ff',
+    tint: subjects.find((subject) => subject.name === item.subject)?.color || '#efeff8',
     objective: `Recall the key ideas in ${item.topic}, then check what still needs practice.`,
-    confidence: item.confidence,
+    confidence: item.estimated ? undefined : item.confidence,
   }));
   return (
     <>
@@ -1562,7 +1690,9 @@ function RevisionPage({ records, subjects, onStart }: { records: StudyRecord[]; 
           <b>{items.length ? 'A good day for a little recall.' : 'A clear start for spaced practice.'}</b>
           <p>
             {items.length
-              ? 'These topics are due for a check-in based on your saved confidence and study history.'
+              ? candidates.length
+                ? 'These topics are due for a check-in based on your saved confidence and study history.'
+                : 'No low-confidence check-ins yet, so these are the topics each subject lists as needing work.'
               : 'Add a subject and Daymark will suggest useful topics to revisit.'}
           </p>
         </div>
@@ -1572,13 +1702,13 @@ function RevisionPage({ records, subjects, onStart }: { records: StudyRecord[]; 
         <div className="revision-list">
           {items.map((item, i) => (
             <div className="revision-row" key={`${item.subject}-${item.topic}`}>
-              <span className={`revision-number ${item.confidence <= 2 ? 'high' : ''}`}>0{i + 1}</span>
+              <span className={`revision-number ${item.confidence <= 2 ? 'high' : ''}`}>{String(i + 1).padStart(2, '0')}</span>
               <div className="revision-topic">
                 <b>{item.topic}</b>
                 <small>{item.subject}</small>
               </div>
               <div className="confidence-meter">
-                <span>Confidence</span>
+                <span>{item.estimated ? 'Estimated confidence' : 'Confidence'}</span>
                 <b>{item.confidence} / 5</b>
                 <i>
                   <u style={{ width: `${item.confidence * 20}%` }} />
@@ -1588,7 +1718,7 @@ function RevisionPage({ records, subjects, onStart }: { records: StudyRecord[]; 
                 <span>Next check-in</span>
                 <b>Today</b>
               </div>
-              <button className="button outline" onClick={() => onStart(sessions[i])}>
+              <button className="button outline" onClick={() => onStart(sessions[i])} aria-label={`Review ${item.topic}`}>
                 <Play size={13} fill="currentColor" /> Review
               </button>
             </div>
@@ -1611,21 +1741,27 @@ function RevisionPage({ records, subjects, onStart }: { records: StudyRecord[]; 
   );
 }
 
-function InsightsPage({ onReplan, records }: { onReplan: () => void; records: StudyRecord[] }) {
+const insightStyles = [
+  { tone: 'morning', icon: '↗', eyebrow: 'YOUR RHYTHM' },
+  { tone: 'topic', icon: '◷', eyebrow: 'ON YOUR PLATE' },
+  { tone: 'win', icon: '✳', eyebrow: 'A GOOD SIGN' },
+];
+
+function InsightsPage({ onReplan, records, onNavigate }: { onReplan: () => void; records: StudyRecord[]; onNavigate: (p: Page) => void }) {
   const observations = generateObservations(records);
-  const insights = observations.map((text, i) => [
-    i === 0 ? 'A pattern from your sessions' : 'Daymark noticed',
-    text,
-    'Use this pattern in your next plan.',
-    ['morning', 'topic', 'win'][i % 3],
-  ]);
-  if (!insights.length)
-    insights.push([
-      'Your learning patterns are taking shape',
-      'Keep studying and Daymark will start noticing your patterns.',
-      'Your check-ins shape future plans.',
-      'morning',
-    ]);
+  const insights = observations.length
+    ? observations.map((text, i) => ({
+        title: i === 0 ? 'A pattern from your sessions' : 'Daymark noticed',
+        text,
+        hint: 'Use this pattern in your next plan.',
+      }))
+    : [
+        {
+          title: 'Your learning patterns are taking shape',
+          text: 'Keep studying and Daymark will start noticing your patterns.',
+          hint: 'Your check-ins shape future plans.',
+        },
+      ];
   return (
     <>
       <div className="page-title-row">
@@ -1634,28 +1770,31 @@ function InsightsPage({ onReplan, records }: { onReplan: () => void; records: St
           <h1>Noticing the patterns.</h1>
           <p className="subhead">A few useful observations from the way you study.</p>
         </div>
-        <span className="insights-period">
-          THIS WEEK <ChevronDown size={14} />
-        </span>
+        <span className="insights-period">FROM YOUR SAVED SESSIONS</span>
       </div>
       <div className="insight-list">
-        {insights.map((x, i) => (
-          <article className="insight-card" key={x[0]}>
-            <span className={`insight-number ${x[3]}`}>{['↗', '◷', '✳'][i]}</span>
-            <div className="insight-body">
-              <div className="eyebrow">{['YOUR RHYTHM', 'ON YOUR PLATE', 'A GOOD SIGN'][i]}</div>
-              <h2>{x[0]}</h2>
-              <p>{x[1]}</p>
-              <div className="insight-action">
-                <span>{x[2]}</span>
-                <button className="text-button" onClick={onReplan}>
-                  {i === 0 ? 'Adjust plan' : i === 1 ? 'Make it smaller' : 'View progress'} <ArrowRight size={14} />
-                </button>
+        {insights.map((insight, i) => {
+          const style = insightStyles[i % insightStyles.length];
+          const action = i % 3 === 2 ? 'progress' : 'replan';
+          return (
+            <article className="insight-card" key={`${i}-${insight.text}`}>
+              <span className={`insight-number ${style.tone}`} aria-hidden="true">
+                {style.icon}
+              </span>
+              <div className="insight-body">
+                <div className="eyebrow">{style.eyebrow}</div>
+                <h2>{insight.title}</h2>
+                <p>{insight.text}</p>
+                <div className="insight-action">
+                  <span>{insight.hint}</span>
+                  <button className="text-button" onClick={action === 'progress' ? () => onNavigate('Progress') : onReplan}>
+                    {action === 'progress' ? 'View progress' : i % 3 === 0 ? 'Adjust plan' : 'Make it smaller'} <ArrowRight size={14} />
+                  </button>
+                </div>
               </div>
-            </div>
-            <span className="insight-age">{i === 0 ? 'TODAY' : i === 1 ? 'YESTERDAY' : '2 DAYS AGO'}</span>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
       <div className="insight-footer">
         <span className="insight-icon">

@@ -11,8 +11,8 @@
   --line: #d2d2d7;
   --paper: #fff;
   --canvas: #f5f5f7;
-  --accent: #0071e3;
-  --accent-pale: #e8f2ff;
+  --accent: #62629c;
+  --accent-pale: #efeff8;
   --green: #34c759;
   --amber: #ff9f0a;
 }
@@ -328,11 +328,11 @@ textarea:focus-visible {
   transform: scale(0.98);
 }
 .button.primary {
-  background: #0071e3;
+  background: var(--accent);
   color: white;
 }
 .button.primary:hover {
-  background: #0077ed;
+  background: #575791;
 }
 .button.outline {
   background: #fff;
@@ -2850,8 +2850,8 @@ textarea:focus-visible {
   height: 42px;
   display: grid;
   place-items: center;
-  background: #e8f2ff;
-  color: #0071e3;
+  background: var(--accent-pale);
+  color: var(--accent);
   border-radius: 12px;
 }
 .empty-panel {
@@ -2888,17 +2888,17 @@ textarea:focus-visible {
   background: #dc3228;
 }
 .nav-item.active {
-  background: #e8f2ff;
+  background: #ececf6;
   color: #1d1d1f;
 }
 .focus-areas {
   min-width: 0;
 }
 .calendar-day.today {
-  color: #0071e3;
+  color: #5d5d96;
 }
 .week-day.selected b {
-  color: #0071e3;
+  color: #505087;
 }
 .calendar-body {
   display: flex;
@@ -2910,4 +2910,71 @@ textarea:focus-visible {
   position: relative;
   flex: 1;
   min-width: 0;
+}
+
+/* Mobile navigation scrim, so tapping outside the open menu closes it. */
+.nav-scrim {
+  display: none;
+}
+@media (max-width: 820px) {
+  .nav-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 14;
+    background: #26262033;
+  }
+}
+.streak-box {
+  width: calc(100% - 4px);
+  text-align: left;
+  color: inherit;
+}
+.streak-box:hover {
+  background: #f1f0e9;
+}
+
+/* Calendar hour labels sit on the same 40px grid as the sessions. */
+.time-labels {
+  justify-content: flex-start;
+  padding-top: 38px;
+}
+.time-labels span {
+  flex: 0 0 40px;
+}
+
+/* Finished sessions read as done and can't be restarted by accident. */
+.calendar-session.is-done,
+.agenda-row.is-done {
+  opacity: 0.55;
+}
+.calendar-session:disabled,
+.agenda-row:disabled,
+.timeline-main:disabled {
+  cursor: default;
+}
+.proposed-sessions .is-done {
+  opacity: 0.6;
+}
+.today-pill:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.command-section form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.button.primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

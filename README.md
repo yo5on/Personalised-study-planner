@@ -80,7 +80,7 @@
 - <samp><b>Personal learning insights</b> — observations are generated from stored study records rather than hardcoded user-facing claims.</samp>
 - <samp><b>Readiness guidance</b> — upcoming exams are classified as <code>Needs attention</code>, <code>Review recommended</code>, or <code>On track</code> using defined planning signals.</samp>
 - <samp><b>Subject management</b> — add, rename, and remove subjects with references updated across planning data.</samp>
-- <samp><b>Local persistence</b> — profile, subjects, sessions, study records, and plan changes persist in browser localStorage.</samp>
+- <samp><b>Local persistence</b> — profile, subjects, sessions, study records, and plan changes persist in browser localStorage, with saved data validated on load so corrupted entries can't break the app.</samp>
 - <samp><b>Responsive interface</b> — designed for desktop, tablet, and mobile use.</samp>
 
 ---
@@ -92,7 +92,7 @@
 <samp>Daymark intentionally keeps a calm editorial interface rather than using conventional AI-dashboard patterns.</samp>
 
 - <samp>Warm off-white surfaces</samp>
-- <samp>Restrained Apple-inspired blue accents</samp>
+- <samp>Muted purple accents</samp>
 - <samp>Serif editorial headings</samp>
 - <samp>Subtle borders and generous whitespace</samp>
 - <samp>Left-side navigation</samp>
@@ -108,7 +108,6 @@
 - <samp>React 18</samp>
 - <samp>TypeScript</samp>
 - <samp>Vite</samp>
-- <samp>Recharts</samp>
 - <samp>Lucide React</samp>
 - <samp>Browser localStorage</samp>
 - <samp>Vercel</samp>
@@ -125,6 +124,7 @@ src/
 ├── services/
 │   ├── agents.ts     # Planning, adaptation, readiness and insight logic
 │   └── storage.ts    # Persistent Daymark state and migration helpers
+├── hooks/            # useCountdown for the focus timer
 ├── data.ts           # Initial subjects and study sessions
 ├── App.tsx            # Application composition and UI state
 └── styles.css         # Product styling
@@ -169,6 +169,15 @@ npm run dev
 
 ```bash
 npm run build
+```
+
+<samp><b>Checks</b></samp>
+
+```bash
+npm run lint        # ESLint
+npm run typecheck   # TypeScript
+npm test            # Vitest unit tests for planning logic and storage
+npm run format      # Prettier
 ```
 
 ---

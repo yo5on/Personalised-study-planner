@@ -15,6 +15,8 @@ const KEY = 'daymark-state';
 const defaultProfile: DaymarkProfile = { name: 'Farah Fathima', course: 'Computer Science', year: '2' };
 const validStatuses = new Set(['done', 'now', 'next', 'later']);
 const validOutcomes = new Set(['understood', 'more-time', 'struggled', 'unfinished']);
+const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
+const isStringArray = (value: unknown): value is string[] => Array.isArray(value) && value.every((item) => typeof item === 'string');
 
 function safeRead(key: string): unknown {
   try {
@@ -34,6 +36,7 @@ function normaliseSessions(value: unknown): Session[] {
       typeof item.topic === 'string' &&
       typeof item.subject === 'string' &&
       typeof item.time === 'string' &&
+      timePattern.test(item.time) &&
       typeof item.tint === 'string' &&
       Number.isFinite(item.minutes) &&
       item.minutes > 0 &&
@@ -42,13 +45,19 @@ function normaliseSessions(value: unknown): Session[] {
       validStatuses.has(item.status),
   );
   if (value.length > 0 && sessions.length === 0) return [...initialSessions];
-  return sessions.map((session) => ({
-    ...session,
-    date: typeof session.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(session.date) ? session.date : localDateKey(new Date()),
-  }));
+  const seen = new Set<number>();
+  // Duplicate ids would make completing one session mark another as done.
+  return sessions
+    .filter((session) => !seen.has(session.id) && !!seen.add(session.id))
+    .map((session) => ({
+      ...session,
+      minutes: Math.min(600, Math.round(session.minutes)),
+      date: typeof session.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(session.date) ? session.date : localDateKey(new Date()),
+    }));
 }
 function normaliseSubjects(value: unknown): Subject[] {
   if (!Array.isArray(value)) return defaultSubjects.map((subject) => ({ ...subject }));
+  const seen = new Set<string>();
   return value
     .filter(
       (item): item is Subject =>
@@ -60,9 +69,13 @@ function normaliseSubjects(value: unknown): Subject[] {
         typeof item.color === 'string' &&
         typeof item.needsWork === 'string',
     )
+    .filter((subject) => {
+      const key = subject.name.trim().toLocaleLowerCase();
+      return !seen.has(key) && !!seen.add(key);
+    })
     .map((subject) => ({
       ...subject,
-      mastery: Number.isFinite(subject.mastery) ? subject.mastery : 0,
+      mastery: Number.isFinite(subject.mastery) ? Math.min(100, Math.max(0, Math.round(subject.mastery))) : 0,
       strong: typeof subject.strong === 'string' ? subject.strong : 'Just getting started',
       exam: typeof subject.exam === 'string' ? subject.exam : subject.name,
       examIn: typeof subject.examIn === 'string' ? subject.examIn : 'No exam date',
@@ -81,13 +94,27 @@ function normaliseRecords(value: unknown): StudyRecord[] {
         Number.isFinite(r.plannedMinutes) &&
         Number.isFinite(r.actualMinutes) &&
         typeof r.completed === 'boolean' &&
-        typeof r.at === 'string',
+        typeof r.at === 'string' &&
+        !Number.isNaN(Date.parse(r.at)),
     )
     .map((r) => ({
       ...r,
       confidence: typeof r.confidence === 'number' && Number.isFinite(r.confidence) ? Math.min(5, Math.max(1, r.confidence)) : undefined,
       outcome: validOutcomes.has(r.outcome || '') ? r.outcome : undefined,
     }));
+}
+function normalisePlanChanges(value: unknown): PlanChange[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (change): change is PlanChange =>
+      !!change &&
+      typeof change === 'object' &&
+      typeof change.explanation === 'string' &&
+      Array.isArray(change.sessions) &&
+      isStringArray(change.removed) &&
+      isStringArray(change.adjusted) &&
+      isStringArray(change.added),
+  );
 }
 function normaliseProfile(value: unknown): DaymarkProfile {
   if (!value || typeof value !== 'object') return { ...defaultProfile };
@@ -109,7 +136,7 @@ export function loadDaymarkState(): DaymarkState {
       subjects: normaliseSubjects(state.subjects),
       sessions: normaliseSessions(state.sessions),
       records: normaliseRecords(state.records),
-      planChanges: Array.isArray(state.planChanges) ? state.planChanges.filter(Boolean) : [],
+      planChanges: normalisePlanChanges(state.planChanges),
     };
   }
   // Migrate earlier versions that saved these collections under separate keys.
