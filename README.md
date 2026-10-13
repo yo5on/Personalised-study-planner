@@ -6,7 +6,7 @@ Daymark is a study planner that reshapes your day around what actually happens: 
 
 ![Daymark dashboard showing the next session, today's agenda, weekly rhythm and the sample-data notice](docs/screenshots/dashboard.png)
 
-_All screenshots show the real app running with its built-in sample subjects and a demo profile. No real study data is shown._
+_All screenshots show the real app running with its built-in sample subjects and a demo profile. No real study data is shown. Dates in the screenshots are from the day they were taken. In the app, sample exam dates are always counted from the day you load the samples._
 
 ## Why Daymark
 
@@ -135,7 +135,8 @@ What the tests don't cover:
 
 - There are no end-to-end browser tests in the repository. Responsive layouts were checked by hand in a browser at phone, tablet and desktop widths.
 - No screen-reader testing (NVDA, VoiceOver, TalkBack) has been done.
-- There is no continuous integration. Run the checks locally before pushing.
+
+**Continuous integration:** GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs the formatting check, lint, typecheck, tests and production build on Node.js 22 and 24 for every push to `main` and every pull request.
 
 ## Data and privacy
 
@@ -156,7 +157,7 @@ What the tests don't cover:
 
 - Export and import of study data as a file
 - An optional synced backend for use across devices
-- End-to-end browser tests and continuous integration
+- End-to-end browser tests, run in CI
 - A configurable weekly goal and study hours
 
 ## Project structure
@@ -179,6 +180,7 @@ src/
     ├── calendarLayout.ts    # Places overlapping calendar sessions
     └── storage.ts           # Loading, validation, migration and saving
 docs/screenshots/            # README screenshots of the running app
+.github/workflows/ci.yml     # GitHub Actions: format, lint, typecheck, test, build
 ```
 
 ## Author
