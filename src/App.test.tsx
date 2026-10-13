@@ -83,6 +83,16 @@ describe('onboarding', () => {
 });
 
 describe('navigation', () => {
+  it('offers a skip link as the first stop that jumps past the sidebar', async () => {
+    seed();
+    const user = setup();
+    await user.tab();
+    const skip = screen.getByRole('link', { name: 'Skip to content' });
+    expect(document.activeElement).toBe(skip);
+    expect(skip.getAttribute('href')).toBe('#main-content');
+    expect(screen.getByRole('main').id).toBe('main-content');
+  });
+
   it('moves between pages and marks the current one', async () => {
     seed();
     const user = setup();
@@ -173,6 +183,15 @@ describe('dialogs', () => {
     expect(document.activeElement).toBe(quickChange());
   });
 
+  it('keep forms open when the backdrop is tapped, so typed input is not lost', async () => {
+    seed();
+    const user = setup();
+    await user.click(screen.getAllByRole('button', { name: 'Edit profile' })[0]);
+    await user.type(screen.getByRole('textbox', { name: /name/i }), ' Lee');
+    await user.click(document.querySelector('.modal-backdrop')!);
+    expect(screen.getByRole('dialog', { name: 'A little about you.' })).toBeTruthy();
+  });
+
   it('close from the close button', async () => {
     seed();
     const user = setup();
@@ -259,5 +278,123 @@ describe('revision check-ins', () => {
     // With no low-confidence topics left, revision falls back to each subject's "needs work" topic, as an estimate.
     await user.click(nav('Revision'));
     expect(screen.getByText(/No low-confidence check-ins yet/)).toBeTruthy();
+  });
+});
+
+type Viewport = 'phone' | 'tablet' | 'desktop';
+/** jsdom has no matchMedia, so stub the queries the calendar uses for a given device. */
+function mockViewport(viewport: Viewport) {
+  const width = { phone: 375, tablet: 768, desktop: 1280 }[viewport];
+  const touch = viewport !== 'desktop';
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: query
+      .split(',')
+      .some(
+        (part) =>
+          (part.includes('hover: none') && touch) ||
+          (/max-width: (\d+)px/.test(part) && width <= Number(part.match(/max-width: (\d+)px/)![1])),
+      ),
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }));
+}
+const overlapping = () => [
+  ...sampleSessions(NOW),
+  {
+    ...sampleSessions(NOW)[0],
+    id: 10,
+    time: '09:15',
+    minutes: 30,
+    subject: 'Computer Networks',
+    topic: 'Subnetting drills',
+    tint: '#e9ddd2',
+  },
+];
+const calendarCard = (topic: string) => screen.getByRole('button', { name: new RegExp(`^[^:]+: ${topic},`) });
+
+describe('calendar on touch screens', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('shows one day at a time on phones, picked from the day header', async () => {
+    mockViewport('phone');
+    seed();
+    const user = setup();
+    await user.click(nav('Plan'));
+    const picker = screen.getByRole('group', { name: 'Choose a day' });
+    expect(within(picker).getAllByRole('button')).toHaveLength(7);
+    expect(within(picker).getByRole('button', { pressed: true }).getAttribute('aria-label')).toBe('Tuesday, October 13, 3 sessions');
+    expect(document.querySelectorAll('.calendar-column')).toHaveLength(1);
+
+    await user.click(within(picker).getByRole('button', { name: /Wednesday, October 14/ }));
+    expect(screen.getByText('Nothing planned for this day.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Eigenvalues/ })).toBeTruthy(); // still listed in today's agenda below
+  });
+
+  it('opens full session details on tap instead of starting the session', async () => {
+    mockViewport('phone');
+    seed();
+    const user = setup();
+    await user.click(nav('Plan'));
+    const card = calendarCard('Eigenvalues & eigenvectors');
+    expect(card.getAttribute('aria-haspopup')).toBe('dialog');
+    await user.click(card);
+
+    expect(screen.queryByRole('timer')).toBeNull();
+    const details = screen.getByRole('dialog', { name: 'Eigenvalues & eigenvectors' });
+    const text = details.textContent!;
+    for (const fact of ['Mathematics', 'Tuesday, October 13 · 09:00', '45 min', 'Up next', 'High']) expect(text).toContain(fact);
+  });
+
+  it('dismisses details with Escape (returning focus) or a tap outside, and can start from them', async () => {
+    mockViewport('phone');
+    seed();
+    const user = setup();
+    await user.click(nav('Plan'));
+    await user.click(calendarCard('Model evaluation'));
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(document.activeElement).toBe(calendarCard('Model evaluation'));
+
+    await user.click(calendarCard('Model evaluation'));
+    await user.click(document.querySelector('.modal-backdrop')!);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByRole('timer')).toBeNull();
+
+    await user.click(calendarCard('Model evaluation'));
+    await user.click(within(screen.getByRole('dialog')).getByRole('heading', { name: 'Model evaluation' }));
+    expect(screen.getByRole('dialog')).toBeTruthy(); // tapping inside keeps it open
+    await user.click(screen.getByRole('button', { name: /start session/i }));
+    expect(screen.getByRole('heading', { level: 1, name: 'Model evaluation' })).toBeTruthy();
+    expect(screen.getByRole('timer')).toBeTruthy();
+  });
+
+  it('lets finished sessions be inspected but not restarted', async () => {
+    mockViewport('tablet');
+    seed({ sessions: sampleSessions(NOW).map((s) => (s.id === 1 ? { ...s, status: 'done' as const } : s)) });
+    const user = setup();
+    await user.click(nav('Plan'));
+    expect(document.querySelectorAll('.calendar-column')).toHaveLength(7);
+    await user.click(calendarCard('Eigenvalues & eigenvectors'));
+    const details = screen.getByRole('dialog', { name: 'Eigenvalues & eigenvectors' });
+    expect(details.textContent).toContain('Done');
+    expect(within(details).queryByRole('button', { name: /start session/i })).toBeNull();
+  });
+
+  it('keeps click-to-start on desktop and lays overlapping sessions side by side', async () => {
+    mockViewport('desktop');
+    seed({ sessions: overlapping() });
+    const user = setup();
+    await user.click(nav('Plan'));
+    const first = calendarCard('Eigenvalues & eigenvectors');
+    const second = calendarCard('Subnetting drills');
+    // Two overlapping sessions each take half the column.
+    expect(first.style.width).toContain('0.5');
+    expect(first.style.left).not.toBe(second.style.left);
+    expect(first.getAttribute('aria-haspopup')).toBeNull();
+
+    await user.click(second);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByRole('heading', { level: 1, name: 'Subnetting drills' })).toBeTruthy();
   });
 });

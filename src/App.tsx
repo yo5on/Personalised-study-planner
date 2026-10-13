@@ -22,6 +22,8 @@ import { weekForDate, localDateKey, sampleSubjects, sampleSessions, type Session
 import { DaymarkMark } from './components/DaymarkMark';
 import { Dialog } from './components/Dialog';
 import { useCountdown } from './hooks/useCountdown';
+import { useMediaQuery } from './hooks/useMediaQuery';
+import { layoutDay } from './services/calendarLayout';
 import { loadDaymarkState, saveDaymarkState, type DaymarkProfile } from './services/storage';
 import {
   Activity,
@@ -354,6 +356,9 @@ function App() {
     );
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
       {mobileNav && <button className="nav-scrim" aria-label="Close menu" onClick={() => setMobileNav(false)} />}
       <aside className={`sidebar ${mobileNav ? 'open' : ''}`} id="daymark-navigation">
         <div className="brand">
@@ -416,7 +421,7 @@ function App() {
           </div>
         </div>
       </aside>
-      <main className="main">
+      <main className="main" id="main-content" tabIndex={-1}>
         <header className="topbar">
           <button
             className="mobile-menu icon-button"
@@ -1252,6 +1257,8 @@ function HomePage({
 
 const CALENDAR_TOP = 38;
 const HOUR_HEIGHT = 60;
+// Cards are never drawn shorter than half an hour, so their text stays legible.
+const MIN_CARD_MINUTES = 30;
 function timeToMinutes(time: string): number {
   const [hour, minute] = time.split(':').map(Number);
   return hour * 60 + minute;
@@ -1302,7 +1309,23 @@ function PlanPage({
   onNavigate: (p: Page) => void;
 }) {
   const [weekOffset, setWeekOffset] = useState(0);
+  const [pickedDay, setPickedDay] = useState<string | null>(null);
+  const [details, setDetails] = useState<Session | null>(null);
+  // Touch screens and narrow windows can't rely on hover, so a tap shows a session's details before anything starts.
+  const tapForDetails = useMediaQuery('(hover: none), (max-width: 820px)');
+  // Phones show one day at a time, chosen from the day header, instead of scrolling a week sideways.
+  const singleDay = useMediaQuery('(max-width: 600px)');
   const shownWeek = weekOffset ? weekForDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() + weekOffset * 7)) : week;
+  const changeWeek = (offset: number) => {
+    setWeekOffset(offset);
+    setPickedDay(null);
+  };
+  const selectedDay = shownWeek.some((d) => d.dateKey === pickedDay)
+    ? pickedDay!
+    : shownWeek.some((d) => d.dateKey === todayKey)
+      ? todayKey
+      : shownWeek[0].dateKey;
+  const columns = singleDay ? shownWeek.filter((d) => d.dateKey === selectedDay) : shownWeek;
   const todaySessions = sortByTime(sessions.filter((s) => (s.date || todayKey) === todayKey));
   const weekStart = shownWeek[0].dateKey;
   const weekEnd = shownWeek[6].dateKey;
@@ -1330,14 +1353,14 @@ function PlanPage({
       </div>
       <div className="planner-toolbar">
         <div className="week-navigation">
-          <button onClick={() => setWeekOffset((offset) => offset - 1)} aria-label="Previous week">
+          <button onClick={() => changeWeek(weekOffset - 1)} aria-label="Previous week">
             <ChevronLeft size={16} />
           </button>
           <b aria-live="polite">{weekRange(shownWeek)}</b>
-          <button onClick={() => setWeekOffset((offset) => offset + 1)} aria-label="Next week">
+          <button onClick={() => changeWeek(weekOffset + 1)} aria-label="Next week">
             <ChevronRight size={16} />
           </button>
-          <button className="today-pill" onClick={() => setWeekOffset(0)} disabled={weekOffset === 0}>
+          <button className="today-pill" onClick={() => changeWeek(0)} disabled={weekOffset === 0}>
             Today
           </button>
         </div>
@@ -1357,15 +1380,31 @@ function PlanPage({
         </div>
       )}
       <div className="planner-layout">
-        <div className="week-calendar">
-          <div className="calendar-head">
+        <div className={`week-calendar ${singleDay ? 'single-day' : ''}`}>
+          <div className="calendar-head" role={singleDay ? 'group' : undefined} aria-label={singleDay ? 'Choose a day' : undefined}>
             <div className="time-spacer" />
-            {shownWeek.map((d) => (
-              <div className={`calendar-day ${d.dateKey === todayKey ? 'today' : ''}`} key={d.dateKey}>
-                <span>{d.day}</span>
-                <b>{d.date}</b>
-              </div>
-            ))}
+            {shownWeek.map((d) => {
+              const count = visibleSessions.filter((s) => (s.date || todayKey) === d.dateKey).length;
+              const className = `calendar-day ${d.dateKey === todayKey ? 'today' : ''} ${singleDay && d.dateKey === selectedDay ? 'selected' : ''}`;
+              return singleDay ? (
+                <button
+                  className={className}
+                  key={d.dateKey}
+                  onClick={() => setPickedDay(d.dateKey)}
+                  aria-pressed={d.dateKey === selectedDay}
+                  aria-label={`${new Date(`${d.dateKey}T12:00:00`).toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric' })}, ${count} ${count === 1 ? 'session' : 'sessions'}`}
+                >
+                  <span>{d.day}</span>
+                  <b>{d.date}</b>
+                  {count > 0 && <i className="day-dot" aria-hidden="true" />}
+                </button>
+              ) : (
+                <div className={className} key={d.dateKey}>
+                  <span>{d.day}</span>
+                  <b>{d.date}</b>
+                </div>
+              );
+            })}
           </div>
           <div className="calendar-body" style={{ height: `${CALENDAR_TOP + (endHour - startHour) * HOUR_HEIGHT + 32}px` }}>
             <div className="time-labels">
@@ -1373,27 +1412,34 @@ function PlanPage({
                 <span key={t}>{t}</span>
               ))}
             </div>
-            {shownWeek.map((d) => (
-              <div className={`calendar-column ${d.dateKey === todayKey ? 'today' : ''}`} key={d.dateKey}>
-                {visibleSessions
-                  .filter((s) => (s.date || todayKey) === d.dateKey)
-                  .map((s) => {
+            {columns.map((d) => {
+              const daySessions = visibleSessions.filter((s) => (s.date || todayKey) === d.dateKey);
+              const slots = layoutDay(daySessions, MIN_CARD_MINUTES);
+              return (
+                <div className={`calendar-column ${d.dateKey === todayKey ? 'today' : ''}`} key={d.dateKey}>
+                  {singleDay && !daySessions.length && <p className="calendar-empty">Nothing planned for this day.</p>}
+                  {daySessions.map((s) => {
                     const offset = Math.max(0, timeToMinutes(s.time) - startHour * 60);
                     const done = s.status === 'done';
+                    const { lane, lanes } = slots.get(s.id) || { lane: 0, lanes: 1 };
+                    const summary = `${s.subject}: ${s.topic}, ${s.time}, ${s.minutes} minutes, ${sessionStatus(s)}`;
                     return (
                       <button
                         className={`calendar-session ${done ? 'is-done' : ''}`}
                         style={{
                           top: `${CALENDAR_TOP + (offset / 60) * HOUR_HEIGHT}px`,
-                          height: `${Math.max(30, (s.minutes / 60) * HOUR_HEIGHT - 2)}px`,
+                          height: `${Math.max(MIN_CARD_MINUTES, s.minutes) * (HOUR_HEIGHT / 60) - 2}px`,
+                          left: `calc(4px + (100% - 8px) * ${lane / lanes})`,
+                          width: `calc((100% - 8px) / ${lanes} - ${lanes > 1 ? 2 : 0}px)`,
                           background: s.tint,
                           borderColor: s.tint,
                         }}
-                        title={`${s.subject}: ${s.topic} · ${s.time} · ${s.minutes} min`}
+                        title={tapForDetails ? undefined : `${s.subject}: ${s.topic} · ${s.time} · ${s.minutes} min`}
                         key={s.id}
-                        onClick={() => onStart(s)}
-                        disabled={done}
-                        aria-label={`${s.subject}: ${s.topic}, ${s.time}, ${s.minutes} minutes${done ? ', done' : ''}`}
+                        onClick={() => (tapForDetails ? setDetails(s) : onStart(s))}
+                        disabled={done && !tapForDetails}
+                        aria-haspopup={tapForDetails ? 'dialog' : undefined}
+                        aria-label={tapForDetails ? `${summary}. Show details` : summary}
                       >
                         <b>{s.subject}</b>
                         <span>{s.topic}</span>
@@ -1403,8 +1449,9 @@ function PlanPage({
                       </button>
                     );
                   })}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
           <div className="calendar-foot">
             {legend.map((subject) => (
@@ -1412,7 +1459,13 @@ function PlanPage({
                 <i className="legend-dot" style={{ background: subject.color }} /> {subject.short || subject.name}
               </span>
             ))}
-            <span>{visibleSessions.length ? 'Click a session to focus' : 'No sessions planned this week'}</span>
+            <span>
+              {visibleSessions.length
+                ? tapForDetails
+                  ? 'Tap a session for details'
+                  : 'Click a session to focus'
+                : 'No sessions planned this week'}
+            </span>
           </div>
         </div>
         <aside className="plan-aside">
@@ -1500,7 +1553,79 @@ function PlanPage({
           </p>
         )}
       </div>
+      {details && (
+        <SessionDetailsModal
+          session={details}
+          onClose={() => setDetails(null)}
+          onStart={() => {
+            setDetails(null);
+            onStart(details);
+          }}
+        />
+      )}
     </>
+  );
+}
+
+function sessionStatus(session: Session) {
+  return session.status === 'done' ? 'done' : session.status === 'now' ? 'up next' : 'planned';
+}
+
+function SessionDetailsModal({ session, onClose, onStart }: { session: Session; onClose: () => void; onStart: () => void }) {
+  const done = session.status === 'done';
+  const date = new Date(`${session.date || localDateKey(new Date())}T12:00:00`).toLocaleDateString('en', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+  return (
+    <Dialog onClose={onClose} dismissOnBackdrop>
+      <section className="confidence-modal session-details" role="dialog" aria-modal="true" aria-labelledby="session-details-heading">
+        <button className="modal-close" onClick={onClose} aria-label="Close session details">
+          <X size={18} />
+        </button>
+        <div className="eyebrow">
+          <span className="session-details-swatch" style={{ background: session.tint }} aria-hidden="true" />
+          {session.subject.toUpperCase()}
+        </div>
+        <h2 id="session-details-heading">{session.topic}</h2>
+        <dl>
+          <div>
+            <dt>Subject</dt>
+            <dd>{session.subject}</dd>
+          </div>
+          <div>
+            <dt>When</dt>
+            <dd>
+              {date} · {session.time}
+            </dd>
+          </div>
+          <div>
+            <dt>Duration</dt>
+            <dd>{session.minutes} min</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>{sessionStatus(session).replace(/^./, (c) => c.toUpperCase())}</dd>
+          </div>
+          <div>
+            <dt>Priority</dt>
+            <dd>{session.priority}</dd>
+          </div>
+        </dl>
+        {session.objective && <p>{session.objective}</p>}
+        <div className="proposal-actions">
+          {!done && (
+            <button className="button primary" onClick={onStart}>
+              <Play size={14} fill="currentColor" /> Start session
+            </button>
+          )}
+          <button className="button outline" onClick={onClose}>
+            Close
+          </button>
+        </div>
+      </section>
+    </Dialog>
   );
 }
 

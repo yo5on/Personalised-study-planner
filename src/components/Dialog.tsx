@@ -1,13 +1,19 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 
-type Props = { onClose: () => void; children: ReactNode };
+type Props = {
+  onClose: () => void;
+  children: ReactNode;
+  /** Close when the backdrop is tapped. Off by default, so forms don't lose input to a stray tap. */
+  dismissOnBackdrop?: boolean;
+};
 
 /**
  * Backdrop for Daymark's modals: closes on Escape, moves focus into the dialog when it opens, keeps Tab inside it,
  * and returns focus to whatever opened it.
  */
-export function Dialog({ onClose, children }: Props) {
+export function Dialog({ onClose, children, dismissOnBackdrop = false }: Props) {
   const backdrop = useRef<HTMLDivElement>(null);
+  const pressedBackdrop = useRef(false);
   const close = useRef(onClose);
   useEffect(() => {
     close.current = onClose;
@@ -48,7 +54,16 @@ export function Dialog({ onClose, children }: Props) {
   }, []);
 
   return (
-    <div className="modal-backdrop" ref={backdrop}>
+    <div
+      className="modal-backdrop"
+      ref={backdrop}
+      onPointerDown={(event) => (pressedBackdrop.current = event.target === backdrop.current)}
+      onClick={(event) => {
+        // Only a press that starts and ends on the backdrop counts, so dragging out of the dialog doesn't close it.
+        if (dismissOnBackdrop && pressedBackdrop.current && event.target === backdrop.current) close.current();
+        pressedBackdrop.current = false;
+      }}
+    >
       {children}
     </div>
   );
