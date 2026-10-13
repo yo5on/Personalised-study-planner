@@ -381,6 +381,24 @@ describe('calendar on touch screens', () => {
     expect(within(details).queryByRole('button', { name: /start session/i })).toBeNull();
   });
 
+  it('shows only the lines of text that fit a card, never a line cut in half', async () => {
+    mockViewport('desktop');
+    const [maths, ai, sql] = sampleSessions(NOW);
+    seed({
+      sessions: [
+        { ...maths, minutes: 45 },
+        { ...ai, minutes: 35 },
+        { ...sql, minutes: 60 },
+      ],
+    });
+    const user = setup();
+    await user.click(nav('Plan'));
+    const lines = (topic: string) => calendarCard(topic).children.length;
+    expect(lines('Model evaluation')).toBe(1); // 35 min: subject only
+    expect(lines('Eigenvalues & eigenvectors')).toBe(2); // 45 min: subject and topic
+    expect(lines('SQL joins')).toBe(3); // 60 min: subject, topic and time
+  });
+
   it('keeps click-to-start on desktop and lays overlapping sessions side by side', async () => {
     mockViewport('desktop');
     seed({ sessions: overlapping() });

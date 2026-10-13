@@ -3265,3 +3265,14 @@ button.calendar-day.selected {
 .main:focus {
   outline: none;
 }
+
+/* Calendar cards show only whole lines: App renders as many as fit with these exact metrics. */
+.calendar-session {
+  padding: 4px 6px;
+  gap: 1px;
+}
+.calendar-session b,
+.calendar-session span,
+.calendar-session small {
+  line-height: 16px;
+}

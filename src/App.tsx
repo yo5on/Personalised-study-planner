@@ -1259,6 +1259,9 @@ const CALENDAR_TOP = 38;
 const HOUR_HEIGHT = 60;
 // Cards are never drawn shorter than half an hour, so their text stays legible.
 const MIN_CARD_MINUTES = 30;
+// Card text uses a fixed 16px line height with 1px gaps and 4px vertical padding (see .calendar-session in styles.css).
+/** How many whole lines of text fit in a calendar card, so no line is ever shown cut in half. */
+const cardLines = (height: number) => Math.max(1, Math.floor((height - 7) / 17));
 function timeToMinutes(time: string): number {
   const [hour, minute] = time.split(':').map(Number);
   return hour * 60 + minute;
@@ -1423,12 +1426,14 @@ function PlanPage({
                     const done = s.status === 'done';
                     const { lane, lanes } = slots.get(s.id) || { lane: 0, lanes: 1 };
                     const summary = `${s.subject}: ${s.topic}, ${s.time}, ${s.minutes} minutes, ${sessionStatus(s)}`;
+                    const height = Math.max(MIN_CARD_MINUTES, s.minutes) * (HOUR_HEIGHT / 60) - 2;
+                    const lines = cardLines(height);
                     return (
                       <button
                         className={`calendar-session ${done ? 'is-done' : ''}`}
                         style={{
                           top: `${CALENDAR_TOP + (offset / 60) * HOUR_HEIGHT}px`,
-                          height: `${Math.max(MIN_CARD_MINUTES, s.minutes) * (HOUR_HEIGHT / 60) - 2}px`,
+                          height: `${height}px`,
                           left: `calc(4px + (100% - 8px) * ${lane / lanes})`,
                           width: `calc((100% - 8px) / ${lanes} - ${lanes > 1 ? 2 : 0}px)`,
                           background: s.tint,
@@ -1442,10 +1447,12 @@ function PlanPage({
                         aria-label={tapForDetails ? `${summary}. Show details` : summary}
                       >
                         <b>{s.subject}</b>
-                        <span>{s.topic}</span>
-                        <small>
-                          {s.time} · {s.minutes} min{done ? ' · done' : ''}
-                        </small>
+                        {lines >= 2 && <span>{s.topic}</span>}
+                        {lines >= 3 && (
+                          <small>
+                            {s.time} · {s.minutes} min{done ? ' · done' : ''}
+                          </small>
+                        )}
                       </button>
                     );
                   })}
