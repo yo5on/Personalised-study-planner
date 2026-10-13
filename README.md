@@ -1,231 +1,186 @@
-<div align="center">
-<samp><b>DAYMARK — PERSONALISED STUDY PLANNER</b></samp>
+# Daymark — personalised study planner
 
-<samp>react · typescript · vite · product design</samp>
+Daymark is a study planner that reshapes your day around what actually happens: less time than expected, an exam tomorrow, a missed session or a topic that didn't stick. It runs entirely in the browser and keeps your data on your device.
 
-</div>
+**Live demo:** [personalised-study-planner.vercel.app](https://personalised-study-planner.vercel.app/)
 
----
+![Daymark dashboard showing the next session, today's agenda, weekly rhythm and the sample-data notice](docs/screenshots/dashboard.png)
 
-<div align="center"><samp>A personalised study planner that adapts daily study plans around time, priorities, exam proximity, session outcomes, and learner feedback.</samp></div>
+_All screenshots show the real app running with its built-in sample subjects and a demo profile. No real study data is shown._
 
----
+## Why Daymark
 
-<div align="center">
-<samp><b>Project Overview</b></samp>
-</div>
+Most study timetables are fixed: once a day goes off-plan, the timetable stops being useful. Daymark treats the plan as something that bends. You tell it what changed in plain language, review exactly what it proposes, and accept or decline. Each completed session ends with a short confidence check-in, and those check-ins drive what comes up for revision.
 
-<samp>Daymark is designed to feel less like a static timetable and more like a study companion that responds to what actually happens during the day.</samp>
+## Features
 
-<samp>Instead of adding generic AI UI, the product expresses intelligence through behaviour: Quick Change requests can reshape a plan, completed sessions feed confidence and outcome data back into planning, and the Insights view surfaces patterns from real study records.</samp>
+- **Daily and weekly planning.** A dashboard with the next session and today's agenda, plus a weekly calendar with exam countdowns and readiness labels.
+- **Quick Change.** Plain-language requests such as "I only have 60 minutes today", "my DBMS exam is tomorrow", "focus on Mathematics", "I'm too tired" or "I finished SQL joins". Every change is shown for review before it's applied, and requests Daymark can't act on are reported as such.
+- **Missed sessions.** Marking a session missed moves it to the next free slot today without overlapping anything, or to tomorrow if today is full.
+- **Focus timer.** Start, pause, resume and reset, a time's-up notice, and a confirmation before you abandon a session in progress.
+- **Confidence check-ins.** Each session ends with a 1–5 confidence rating and an outcome. Ratings update the subject's estimated mastery.
+- **Revision.** Topics whose most recent check-in was low confidence are queued for review. A later confident check-in clears them.
+- **Progress and insights.** Weekly study time, streak, consistency and a weekly goal, plus observations generated from your saved check-ins.
+- **Responsive calendar.** Overlapping sessions sit side by side. On phones the calendar shows one day at a time, and tapping a session opens its full details instead of starting it.
+- **Onboarding and sample data.** New users start from a blank plan or optional sample subjects whose exam dates are counted from today. Sample data can be cleared in one step.
 
----
+## How the planning works
 
-<div align="center">
-<samp><b>Project Images</b></samp>
-</div>
+Daymark's planning is **rule-based TypeScript, not a language model**. There is no AI service, API key or network call behind Quick Change. Requests are matched against a defined set of patterns (available time, exams, focus, finished topics, tiredness, missed sessions and rebalancing), and plans are adjusted by pure functions in [`src/services/agents.ts`](src/services/agents.ts). As a result, the behaviour is predictable, works offline and is covered by unit tests. The trade-off is that requests outside those patterns aren't understood, and the app says so rather than guessing.
 
-<div align="center">
+## Screenshots
 
-![Daymark dashboard](https://raw.githubusercontent.com/yo5on/Personalised-study-planner/main/images/dashboard.png)
+| Quick Change review                                                                                                | Weekly planner                                                                            |
+| ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| ![Quick Change dialog proposing a shorter plan for 60 available minutes](docs/screenshots/quick-change.png)        | ![Weekly planner with exam countdowns and readiness labels](docs/screenshots/planner.png) |
+| **Progress**                                                                                                       | **Welcome step**                                                                          |
+| ![Progress page with weekly study time, streak, subject mastery and an observation](docs/screenshots/progress.png) | ![Welcome dialog with optional name, course and year](docs/screenshots/onboarding.png)    |
 
-</div>
+<p align="center">
+  <img src="docs/screenshots/mobile-session-details.png" alt="Phone view: single-day calendar with a session's details open in a bottom sheet" width="320">
+  <br>
+  <em>On a phone, tapping a calendar session opens its details instead of starting it.</em>
+</p>
 
-<div align="center"><samp><i>Daymark dashboard and personalised planning interface.</i></samp></div>
+## Tech stack
 
-<div align="center">
+- **React 18** and **TypeScript** (strict mode), built with **Vite 6**
+- **lucide-react** for icons
+- **Vitest**, **React Testing Library** and **jsdom** for tests
+- **ESLint** (typescript-eslint, react-hooks) and **Prettier**
+- Browser **localStorage** for persistence. There is no backend.
 
-![Daymark study plan](https://raw.githubusercontent.com/yo5on/Personalised-study-planner/main/images/plan.png)
+## Architecture
 
-</div>
+The UI and the planning logic are kept apart. React components hold UI state only; every planning decision lives in plain, testable functions.
 
-<div align="center"><samp><i>Adaptive daily and weekly study planning.</i></samp></div>
+```mermaid
+flowchart LR
+  subgraph UI["React UI"]
+    App["App.tsx<br/>pages, dialogs, focus mode"]
+    Dialog["components/Dialog.tsx"]
+    Hooks["hooks/<br/>useCountdown, useMediaQuery"]
+  end
+  subgraph Logic["Planning logic (pure TypeScript)"]
+    Agents["services/agents.ts<br/>Quick Change, revision,<br/>progress, readiness"]
+    Layout["services/calendarLayout.ts<br/>overlap lanes"]
+  end
+  Storage["services/storage.ts<br/>load, validate, migrate, save"]
+  Data["data.ts<br/>types and sample data"]
+  LS[("Browser localStorage")]
 
-<div align="center">
-
-![Daymark subjects](https://raw.githubusercontent.com/yo5on/Personalised-study-planner/main/images/subjects.png)
-
-</div>
-
-<div align="center"><samp><i>Subject mastery and upcoming-exam overview.</i></samp></div>
-
-<div align="center">
-
-![Daymark progress](https://raw.githubusercontent.com/yo5on/Personalised-study-planner/main/images/progress.png)
-
-</div>
-
-<div align="center"><samp><i>Study progress, consistency, and subject performance.</i></samp></div>
-
-<div align="center">
-
-![Daymark revision](https://raw.githubusercontent.com/yo5on/Personalised-study-planner/main/images/revision.png)
-
-</div>
-
-<div align="center"><samp><i>Spaced revision and confidence-based recall.</i></samp></div>
-
----
-
-<div align="center">
-<samp><b>Features</b></samp>
-</div>
-
-- <samp><b>Adaptive Quick Change</b> — understands requests such as limited study time, upcoming exams, low energy, finished topics, subject focus, and missed sessions.</samp>
-- <samp><b>Plan change review</b> — proposed changes are shown before they are applied, with Accept and Keep Current Plan actions.</samp>
-- <samp><b>Plan explanations</b> — schedule changes include concise reasons such as exam priority, reduced available time, or lower confidence.</samp>
-- <samp><b>Study sessions</b> — focused session mode with objective, timer, progress, pause, and completion flow.</samp>
-- <samp><b>Learning feedback loop</b> — completed sessions capture confidence and optional outcomes such as understood, needed more time, struggled, or didn't finish.</samp>
-- <samp><b>Missed-session adaptation</b> — missed work can be moved, shortened, or reprioritised to keep the day realistic.</samp>
-- <samp><b>Personal learning insights</b> — observations are generated from stored study records rather than hardcoded user-facing claims.</samp>
-- <samp><b>Readiness guidance</b> — upcoming exams are classified as <code>Needs attention</code>, <code>Review recommended</code>, or <code>On track</code> using defined planning signals.</samp>
-- <samp><b>Welcome and sample data</b> — new users choose a blank plan or sample subjects. Sample exam dates are counted from the day they're added, and sample data can be cleared in one step.</samp>
-- <samp><b>Subject management</b> — add, edit, and remove subjects with references updated across planning data.</samp>
-- <samp><b>Local persistence</b> — profile, subjects, sessions, study records, and plan changes persist in browser localStorage, with saved data validated on load so corrupted entries can't break the app.</samp>
-- <samp><b>Responsive interface</b> — designed for desktop, tablet, and mobile use.</samp>
-
----
-
-<div align="center">
-<samp><b>Product Design</b></samp>
-</div>
-
-<samp>Daymark intentionally keeps a calm editorial interface rather than using conventional AI-dashboard patterns.</samp>
-
-- <samp>Warm off-white surfaces</samp>
-- <samp>Muted purple accents</samp>
-- <samp>Serif editorial headings</samp>
-- <samp>Subtle borders and generous whitespace</samp>
-- <samp>Left-side navigation</samp>
-- <samp>Timeline-based daily planning</samp>
-- <samp>Behaviour-driven personalisation instead of decorative AI elements</samp>
-
----
-
-<div align="center">
-<samp><b>Tech Stack</b></samp>
-</div>
-
-- <samp>React 18</samp>
-- <samp>TypeScript</samp>
-- <samp>Vite</samp>
-- <samp>Lucide React</samp>
-- <samp>Browser localStorage</samp>
-- <samp>Vercel</samp>
-
----
-
-<div align="center">
-<samp><b>Architecture</b></samp>
-</div>
-
-```text
-src/
-├── components/       # Reusable UI components
-├── services/
-│   ├── agents.ts     # Planning, adaptation, readiness and insight logic
-│   └── storage.ts    # Persistent Daymark state and migration helpers
-├── hooks/            # useCountdown for the focus timer
-├── data.ts           # Types and optional sample subjects and sessions
-├── App.tsx            # Application composition and UI state
-└── styles.css         # Product styling
+  App --> Dialog
+  App --> Hooks
+  App --> Agents
+  App --> Layout
+  App --> Storage
+  App --> Data
+  Agents --> Data
+  Storage --> Data
+  Storage <--> LS
 ```
 
-<samp>The agent layer is kept separate from the React UI. Core planning behaviour is exposed through structured TypeScript types and functions including:</samp>
+Engineering decisions worth noting:
 
-- <samp><code>createStudyPlan()</code></samp>
-- <samp><code>adaptStudyPlan()</code></samp>
-- <samp><code>prioritizeTopics()</code></samp>
-- <samp><code>generateRevisionPlan()</code></samp>
-- <samp><code>evaluateReadiness()</code></samp>
-- <samp><code>explainPlanChange()</code></samp>
-- <samp><code>generateObservations()</code></samp>
+- **Validated persistence.** Saved state is checked field by field on load. Malformed entries, duplicate IDs and bad dates are dropped rather than crashing the app, and unreadable data is backed up before it could be overwritten.
+- **Deadline-based timer.** The focus timer counts against a fixed end time instead of counting ticks, so it stays accurate when the browser throttles background tabs.
+- **Non-destructive plan changes.** Quick Change only reshapes the remaining sessions for today. Finished sessions and other days are never altered, and nothing is applied until you accept.
+- **Accessibility.** Dialogs trap focus, close with Escape and return focus to whatever opened them. There's a skip link and every control has an accessible name. Text colours were tuned to WCAG AA contrast (4.5:1) on the app's light surfaces. On touch screens, controls have targets of at least 44px, except the phone calendar's day picker, where seven days must fit across the screen (40px).
 
----
+## Getting started
 
-<div align="center">
-<samp><b>Getting Started</b></samp>
-</div>
+### Requirements
 
-<samp><b>Requirements</b></samp>
+- **Node.js 22.22+ or 24.15+.** The test tooling (Vitest and jsdom) requires one of these. The app itself builds on older versions, but use one of these for the full workflow.
+- **npm** (bundled with Node.js)
 
-- <samp>Node.js</samp>
-- <samp>npm</samp>
-
-<samp><b>Install</b></samp>
+The commands are the same in Windows PowerShell, Command Prompt, Git Bash, macOS and Linux terminals.
 
 ```bash
+git clone https://github.com/yo5on/Personalised-study-planner.git
+cd Personalised-study-planner
 npm install
-```
-
-<samp><b>Run Locally</b></samp>
-
-```bash
 npm run dev
 ```
 
-<samp>Then open the local Vite URL shown in the terminal.</samp>
+Then open the local URL Vite prints (usually `http://localhost:5173`).
 
-<samp><b>Production Build</b></samp>
+### Environment variables
 
-```bash
-npm run build
-```
+None. Daymark has no backend, API keys or environment configuration.
 
-<samp><b>Checks</b></samp>
+### Scripts
 
-```bash
-npm run lint        # ESLint
-npm run typecheck   # TypeScript
-npm test            # Vitest: planning and storage unit tests, plus React Testing Library component tests
-npm run format      # Prettier
-```
+| Command                | What it does                                           |
+| ---------------------- | ------------------------------------------------------ |
+| `npm run dev`          | Start the Vite development server                      |
+| `npm run build`        | Typecheck, then build a production bundle into `dist/` |
+| `npm run preview`      | Serve the production build locally                     |
+| `npm run lint`         | Run ESLint                                             |
+| `npm run typecheck`    | Run the TypeScript compiler without emitting files     |
+| `npm test`             | Run all tests once with Vitest                         |
+| `npm run format`       | Format the project with Prettier                       |
+| `npm run format:check` | Check formatting without changing files                |
 
----
+## Testing
 
-<div align="center">
-<samp><b>Deployment</b></samp>
-</div>
+`npm test` runs 60 tests in 4 files:
 
-<samp>Daymark is deployed as a Vite application on Vercel.</samp>
+- **Planning logic** (`src/services/agents.test.ts`): Quick Change parsing and plan adaptation, missed-session rescheduling, revision, streaks and weekly progress.
+- **Persistence** (`src/services/storage.test.ts`): validation of malformed data, the backup of unreadable data, migration from older versions and existing-user handling.
+- **Calendar layout** (`src/services/calendarLayout.test.ts`): placing overlapping sessions side by side.
+- **Components** (`src/App.test.tsx`, React Testing Library): onboarding, navigation, Quick Change accept/decline/unrecognised, dialog dismissal and focus return, the timer (pause, resume, time's up and check-in), revision check-ins, and the phone calendar's tap-for-details behaviour.
+
+What the tests don't cover:
+
+- There are no end-to-end browser tests in the repository. Responsive layouts were checked by hand in a browser at phone, tablet and desktop widths.
+- No screen-reader testing (NVDA, VoiceOver, TalkBack) has been done.
+- There is no continuous integration. Run the checks locally before pushing.
+
+## Data and privacy
+
+- All data (profile, subjects, sessions, check-ins and plan changes) is stored in your browser's `localStorage` under the key `daymark-state`. Nothing is sent to a server, and there are no accounts or analytics.
+- If saved data can't be read, a copy is kept under `daymark-state-unreadable-backup` before the app starts fresh.
+- Data stays on one browser and device. It doesn't sync, and clearing site data or using a private window removes it.
+- The page loads its fonts (DM Sans and Newsreader) from Google Fonts, so your browser requests those files from Google.
+
+## Known limitations
+
+- Quick Change understands a fixed set of request patterns. It isn't a general language model.
+- Data is stored only in the browser. There's no export, import or cross-device sync.
+- Estimated mastery is a simple weighted average of confidence check-ins, not an assessment.
+- The weekly goal is fixed at 9 hours.
+- Only English is supported.
+
+## Possible next steps
+
+- Export and import of study data as a file
+- An optional synced backend for use across devices
+- End-to-end browser tests and continuous integration
+- A configurable weekly goal and study hours
+
+## Project structure
 
 ```text
-Framework: Vite
-Build command: npm run build
-Output directory: dist
-Install command: npm install
+src/
+├── App.tsx                  # Pages, dialogs and focus mode
+├── App.test.tsx             # Component tests (React Testing Library)
+├── main.tsx                 # Entry point
+├── data.ts                  # Types and optional sample data
+├── styles.css               # Styling
+├── components/
+│   ├── DaymarkMark.tsx      # Logo
+│   └── Dialog.tsx           # Accessible modal wrapper
+├── hooks/
+│   ├── useCountdown.ts      # Deadline-based focus timer
+│   └── useMediaQuery.ts     # Responsive and touch behaviour
+└── services/
+    ├── agents.ts            # Rule-based planning, revision and progress logic
+    ├── calendarLayout.ts    # Places overlapping calendar sessions
+    └── storage.ts           # Loading, validation, migration and saving
+docs/screenshots/            # README screenshots of the running app
 ```
 
-<samp>No environment variables are required for the current local-first implementation.</samp>
+## Author
 
----
-
-<div align="center">
-<samp><b>Data & Privacy</b></samp>
-</div>
-
-<samp>Daymark currently uses browser localStorage rather than a remote database. Study data and profile information therefore remain in the browser that is using the application and are not shared between users automatically.</samp>
-
-<samp>This architecture keeps the current prototype simple and avoids requiring an account or backend service.</samp>
-
----
-
-<div align="center">
-<samp><b>Project Status</b></samp>
-</div>
-
-<samp>Daymark is an actively developed personalised study-planning prototype. The current implementation focuses on adaptive planning, feedback-driven sessions, subject management, readiness guidance, and a polished product experience.</samp>
-
----
-
-<div align="center">
-<samp><b>Author</b></samp>
-</div>
-
-<div align="center">
-<samp><strong>Yoson</strong></samp>
-
-<samp>Computer Science student interested in AI/ML, robotics, embedded systems, and automation.</samp>
-
-<samp>GitHub: https://github.com/yo5on</samp>
-</div>
+**Yoson**, a Computer Science student interested in AI/ML, robotics, embedded systems and automation. [github.com/yo5on](https://github.com/yo5on)
