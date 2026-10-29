@@ -3304,3 +3304,11 @@ a {
     scroll-behavior: auto;
   }
 }
+
+
+/* Calendar sessions remain easy to locate when navigating without a pointer. */
+.calendar-session:focus-visible {
+  z-index: 2;
+  outline: 2px solid #62629c;
+  outline-offset: 2px;
+}
