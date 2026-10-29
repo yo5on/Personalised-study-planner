@@ -12,17 +12,17 @@
 
 <div align="center">
 
-**[Open Live App](https://personalised-study-planner.vercel.app/)** · [Source Code](https://github.com/yo5on/Personalised-study-planner)
+<samp>**[Open Live App](https://personalised-study-planner.vercel.app/)** · [Source Code](https://github.com/yo5on/Personalised-study-planner)</samp>
 
 </div>
 
 ![Daymark dashboard showing the next session, today's agenda, weekly rhythm and the sample-data notice](docs/screenshots/dashboard.png)
 
-_All screenshots show the real app running with its built-in sample subjects and a demo profile. No real study data is shown. Dates in the screenshots are from the day they were taken. In the app, sample exam dates are always counted from the day you load the samples._
+<samp>_All screenshots show the real app running with its built-in sample subjects and a demo profile. No real study data is shown. Dates in the screenshots are from the day they were taken. In the app, sample exam dates are always counted from the day you load the samples._</samp>
 
 ## Why Daymark
 
-Most study timetables are fixed: once a day goes off-plan, the timetable stops being useful. Daymark treats the plan as something that bends. You tell it what changed in plain language, review exactly what it proposes, and accept or decline. Each completed session ends with a short confidence check-in, and those check-ins drive what comes up for revision.
+<samp>Most study timetables are fixed: once a day goes off-plan, the timetable stops being useful. Daymark treats the plan as something that bends. You tell it what changed in plain language, review exactly what it proposes, and accept or decline. Each completed session ends with a short confidence check-in, and those check-ins drive what comes up for revision.</samp>
 
 ## Features
 
@@ -38,7 +38,7 @@ Most study timetables are fixed: once a day goes off-plan, the timetable stops b
 
 ## How the planning works
 
-Daymark's planning is **rule-based TypeScript, not a language model**. There is no AI service, API key or network call behind Quick Change. Requests are matched against a defined set of patterns (available time, exams, focus, finished topics, tiredness, missed sessions and rebalancing), and plans are adjusted by pure functions in [`src/services/agents.ts`](src/services/agents.ts). As a result, the behaviour is predictable, works offline and is covered by unit tests. The trade-off is that requests outside those patterns aren't understood, and the app says so rather than guessing.
+<samp>Daymark's planning is **rule-based TypeScript, not a language model**. There is no AI service, API key or network call behind Quick Change. Requests are matched against a defined set of patterns (available time, exams, focus, finished topics, tiredness, missed sessions and rebalancing), and plans are adjusted by pure functions in [`src/services/agents.ts`](src/services/agents.ts). As a result, the behaviour is predictable, works offline and is covered by unit tests. The trade-off is that requests outside those patterns aren't understood, and the app says so rather than guessing.</samp>
 
 ## Screenshots
 
@@ -64,7 +64,7 @@ Daymark's planning is **rule-based TypeScript, not a language model**. There is 
 
 ## Architecture
 
-The UI and the planning logic are kept apart. React components hold UI state only; every planning decision lives in plain, testable functions.
+<samp>The UI and the planning logic are kept apart. React components hold UI state only; every planning decision lives in plain, testable functions.</samp>
 
 ```mermaid
 flowchart LR
@@ -92,7 +92,7 @@ flowchart LR
   Storage <--> LS
 ```
 
-Engineering decisions worth noting:
+<samp>Engineering decisions worth noting:</samp>
 
 - **Validated persistence.** Saved state is checked field by field on load. Malformed entries, duplicate IDs and bad dates are dropped rather than crashing the app, and unreadable data is backed up before it could be overwritten.
 - **Deadline-based timer.** The focus timer counts against a fixed end time instead of counting ticks, so it stays accurate when the browser throttles background tabs.
@@ -106,7 +106,7 @@ Engineering decisions worth noting:
 - **Node.js 22.22+ or 24.15+.** The test tooling (Vitest and jsdom) requires one of these. The app itself builds on older versions, but use one of these for the full workflow.
 - **npm** (bundled with Node.js)
 
-The commands are the same in Windows PowerShell, Command Prompt, Git Bash, macOS and Linux terminals.
+<samp>The commands are the same in Windows PowerShell, Command Prompt, Git Bash, macOS and Linux terminals.</samp>
 
 ```bash
 git clone https://github.com/yo5on/Personalised-study-planner.git
@@ -115,11 +115,11 @@ npm install
 npm run dev
 ```
 
-Then open the local URL Vite prints (usually `http://localhost:5173`).
+<samp>Then open the local URL Vite prints (usually `http://localhost:5173`).</samp>
 
 ### Environment variables
 
-None. Daymark has no backend, API keys or environment configuration.
+<samp>None. Daymark has no backend, API keys or environment configuration.</samp>
 
 ### Scripts
 
@@ -136,19 +136,19 @@ None. Daymark has no backend, API keys or environment configuration.
 
 ## Testing
 
-`npm test` runs 60 tests in 4 files:
+<samp>`npm test` runs 60 tests in 4 files:</samp>
 
 - **Planning logic** (`src/services/agents.test.ts`): Quick Change parsing and plan adaptation, missed-session rescheduling, revision, streaks and weekly progress.
 - **Persistence** (`src/services/storage.test.ts`): validation of malformed data, the backup of unreadable data, migration from older versions and existing-user handling.
 - **Calendar layout** (`src/services/calendarLayout.test.ts`): placing overlapping sessions side by side.
 - **Components** (`src/App.test.tsx`, React Testing Library): onboarding, navigation, Quick Change accept/decline/unrecognised, dialog dismissal and focus return, the timer (pause, resume, time's up and check-in), revision check-ins, and the phone calendar's tap-for-details behaviour.
 
-What the tests don't cover:
+<samp>What the tests don't cover:</samp>
 
 - There are no end-to-end browser tests in the repository. Responsive layouts were checked by hand in a browser at phone, tablet and desktop widths.
 - No screen-reader testing (NVDA, VoiceOver, TalkBack) has been done.
 
-**Continuous integration:** GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs the formatting check, lint, typecheck, tests and production build on Node.js 22 and 24 for every push to `main` and every pull request.
+<samp>**Continuous integration:** GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs the formatting check, lint, typecheck, tests and production build on Node.js 22 and 24 for every push to `main` and every pull request.</samp>
 
 ## Data and privacy
 
