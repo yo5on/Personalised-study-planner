@@ -3305,7 +3305,6 @@ a {
   }
 }
 
-
 /* Calendar sessions remain easy to locate when navigating without a pointer. */
 .calendar-session:focus-visible {
   z-index: 2;
