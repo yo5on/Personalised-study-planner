@@ -1,0 +1,35 @@
+name: One-time Daymark stylesheet formatter
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: startsWith(github.event.head_commit.message, 'chore: format UI audit stylesheet')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Format only the changed stylesheet
+        run: npx prettier --write src/styles.css
+      - name: Commit formatting and remove this temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/styles.css
+          git rm .github/workflows/format-ui-audit.yml
+          git commit -m "style: format Daymark UI audit stylesheet"
+          git push
