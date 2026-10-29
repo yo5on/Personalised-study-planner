@@ -1,8 +1,20 @@
-# Daymark — personalised study planner
+<div align="center">
 
-Daymark is a study planner that reshapes your day around what actually happens: less time than expected, an exam tomorrow, a missed session or a topic that didn't stick. It runs entirely in the browser and keeps your data on your device.
+<samp><b>DAYMARK · PERSONALISED STUDY PLANNER</b></samp>
 
-**Live demo:** [personalised-study-planner.vercel.app](https://personalised-study-planner.vercel.app/)
+<samp>react · typescript · vite · adaptive planning · local-first</samp>
+
+</div>
+
+---
+
+<div align="center"><samp>Daymark reshapes your study day around what actually happens: less time than expected, an exam tomorrow, a missed session or a topic that didn't stick. It runs in the browser and keeps your data on your device.</samp></div>
+
+<div align="center">
+
+**[Open Live App](https://personalised-study-planner.vercel.app/)** · [Source Code](https://github.com/yo5on/Personalised-study-planner)
+
+</div>
 
 ![Daymark dashboard showing the next session, today's agenda, weekly rhythm and the sample-data notice](docs/screenshots/dashboard.png)
 
@@ -185,4 +197,12 @@ docs/screenshots/            # README screenshots of the running app
 
 ## Author
 
-**Yoson**, a Computer Science student interested in AI/ML, robotics, embedded systems and automation. [github.com/yo5on](https://github.com/yo5on)
+<div align="center">
+
+---
+
+<samp><strong>Yoson</strong> · software, AI/ML and learning tools</samp>
+
+<samp><a href="https://github.com/yo5on">github.com/yo5on</a> · <a href="https://www.linkedin.com/in/yo5on">LinkedIn</a></samp>
+
+</div>
